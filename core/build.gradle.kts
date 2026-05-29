@@ -9,7 +9,9 @@ dependencies {
     compileOnly(files("lib/MythicLib-dist-1.7.1-20251205.145545-63.jar"))
     compileOnly("net.Indyuce:MMOItems-API:6.10.1-SNAPSHOT")
     compileOnly("com.github.LoneDev6:api-itemsadder:2.3.8")
-    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
+        exclude("org.bukkit", "bukkit")
+    }
     compileOnly("org.black_ixx:playerpoints:3.2.4")
     compileOnly("com.willfp:EcoItems:5.10.4")
     compileOnly(files("lib/AdvancedEnchantmentsAPI.jar"))
