@@ -12,7 +12,7 @@ on:
         default: 'false'
 
 env:
-  UPSTREAM_REPO: PQguanfang/ultimateshop
+  UPSTREAM_REPO: PQguanfang/UltimateShop
   JAVA_VERSION: '21'
   MAVEN_VERSION: '3.9.6'
 
