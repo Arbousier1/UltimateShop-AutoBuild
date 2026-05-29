@@ -325,6 +325,32 @@ placeholder:
     # If your server never use dynamic value in prices or similar things, you can set this option to false.
     # This will improve little plugin performance.
     can-used-in-amount: true
+    # Economy model variables can be used in product/price/limit amount expressions.
+    # Every value can be a number or a PlaceholderAPI expression.
+    economy-model:
+      base-price: 0
+      quota-base: 0
+      active-weight: 0
+      total-quota: 0
+      environment-index: 1
+      special-price-index: 1
+      beta: 1
+      noise: 0
+      noise-sigma: 0.025
+      noise-x: 0
+      alpha-winter: 0.15
+      alpha-summer: 0.15
+      alpha-national: 0.075
+      mu-winter: 0
+      mu-summer: 0
+      mu-national: 0
+      sigma-winter: 65536
+      sigma-summer: 65536
+      sigma-national: 33.1776
+      period-sell-limit: 0
+      price-decay: 0.05
+      decay-delta: 1
+      decay-tau-days: 7
   refresh:
     format: "{lang}"
     never: "{lang}"

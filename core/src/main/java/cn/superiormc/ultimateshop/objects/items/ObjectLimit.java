@@ -1,11 +1,9 @@
 package cn.superiormc.ultimateshop.objects.items;
 
-import cn.superiormc.ultimateshop.managers.CacheManager;
 import cn.superiormc.ultimateshop.managers.ConfigManager;
 import cn.superiormc.ultimateshop.objects.ObjectThingRun;
 import cn.superiormc.ultimateshop.objects.buttons.ObjectItem;
-import cn.superiormc.ultimateshop.objects.caches.ObjectUseTimesCache;
-import cn.superiormc.ultimateshop.utils.CommonUtil;
+import cn.superiormc.ultimateshop.utils.AmountVariableUtil;
 import cn.superiormc.ultimateshop.utils.MathUtil;
 import cn.superiormc.ultimateshop.utils.TextUtil;
 import org.bukkit.configuration.ConfigurationSection;
@@ -74,54 +72,7 @@ public class ObjectLimit {
         String tempVal1 = limitSection.getString(path, "-1");
         if (!tempVal1.equals("-1")) {
             if (item != null && ConfigManager.configManager.getBoolean("placeholder.data.can-used-in-amount")) {
-                int playerBuyTimes = 0;
-                int playerSellTimes = 0;
-                int playerTotalBuyTimes = 0;
-                int playerTotalSellTimes = 0;
-                int serverBuyTimes = 0;
-                int serverSellTimes = 0;
-                int serverTotalBuyTimes = 0;
-                int serverTotalSellTimes = 0;
-                ObjectUseTimesCache tempVal3 = CacheManager.cacheManager.getObjectCache(player).getUseTimesCache().get(item);
-                ObjectUseTimesCache tempVal4 = CacheManager.cacheManager.serverCache.getUseTimesCache().get(item);
-                if (tempVal3 != null) {
-                    playerBuyTimes = tempVal3.getBuyUseTimes();
-                    playerSellTimes = tempVal3.getSellUseTimes();
-                    playerTotalBuyTimes = tempVal3.getTotalBuyUseTimes();
-                    playerTotalSellTimes = tempVal3.getTotalSellUseTimes();
-                }
-                if (tempVal4 != null) {
-                    serverBuyTimes = tempVal4.getBuyUseTimes();
-                    serverSellTimes = tempVal4.getSellUseTimes();
-                    serverTotalBuyTimes = tempVal4.getTotalBuyUseTimes();
-                    serverTotalSellTimes = tempVal4.getTotalSellUseTimes();
-                }
-                tempVal1 = CommonUtil.modifyString(player, tempVal1,
-                        "buy-times-player",
-                        String.valueOf(playerBuyTimes),
-                        "sell-times-player",
-                        String.valueOf(playerSellTimes),
-                        "buy-times-server",
-                        String.valueOf(serverBuyTimes),
-                        "sell-times-server",
-                        String.valueOf(serverSellTimes),
-                        "buy-total-player",
-                        String.valueOf(playerTotalBuyTimes),
-                        "sell-total-player",
-                        String.valueOf(playerTotalSellTimes),
-                        "buy-total-server",
-                        String.valueOf(serverTotalBuyTimes),
-                        "sell-total-server",
-                        String.valueOf(serverTotalSellTimes),
-                        "last-buy-player", tempVal3 != null ? tempVal3.getBuyLastTimeName() : "",
-                        "last-sell-player", tempVal3 != null ? tempVal3.getSellLastTimeName() : "",
-                        "last-buy-server", tempVal4 != null ? tempVal4.getBuyLastTimeName() : "",
-                        "last-sell-server", tempVal4 != null ? tempVal4.getSellLastTimeName() : "",
-                        "last-reset-buy-player", tempVal3 != null ? tempVal3.getBuyLastResetTimeName() : "",
-                        "last-reset-sell-player", tempVal3 != null ? tempVal3.getSellLastResetTimeName() : "",
-                        "last-reset-buy-server", tempVal4 != null ? tempVal4.getBuyLastResetTimeName() : "",
-                        "last-reset-sell-server", tempVal4 != null ? tempVal4.getSellLastResetTimeName() : ""
-                        );
+                tempVal1 = AmountVariableUtil.replaceLimitVariables(player, tempVal1, item);
             }
             tempVal2 = MathUtil.doCalculate(TextUtil.withPAPI(tempVal1, player)).intValue();
         }

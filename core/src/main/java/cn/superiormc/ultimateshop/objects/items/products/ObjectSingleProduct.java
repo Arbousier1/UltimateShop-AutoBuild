@@ -1,11 +1,10 @@
 package cn.superiormc.ultimateshop.objects.items.products;
 
-import cn.superiormc.ultimateshop.managers.CacheManager;
 import cn.superiormc.ultimateshop.managers.ConfigManager;
 import cn.superiormc.ultimateshop.methods.StaticPlaceholder;
 import cn.superiormc.ultimateshop.objects.buttons.ObjectItem;
-import cn.superiormc.ultimateshop.objects.caches.ObjectUseTimesCache;
 import cn.superiormc.ultimateshop.objects.items.AbstractSingleThing;
+import cn.superiormc.ultimateshop.utils.AmountVariableUtil;
 import cn.superiormc.ultimateshop.utils.CommonUtil;
 import cn.superiormc.ultimateshop.utils.MathUtil;
 import cn.superiormc.ultimateshop.utils.TextUtil;
@@ -70,53 +69,7 @@ public class ObjectSingleProduct extends AbstractSingleThing {
             cost = baseAmount;
         } else {
             if (item != null && ConfigManager.configManager.getBoolean("placeholder.data.can-used-in-amount")) {
-                int playerBuyTimes = 0;
-                int playerSellTimes = 0;
-                int playerTotalBuyTimes = 0;
-                int playerTotalSellTimes = 0;
-                int serverBuyTimes = 0;
-                int serverSellTimes = 0;
-                int serverTotalBuyTimes = 0;
-                int serverTotalSellTimes = 0;
-                ObjectUseTimesCache tempVal3 = CacheManager.cacheManager.getObjectCache(player).getUseTimesCache().get(item);
-                ObjectUseTimesCache tempVal4 = CacheManager.cacheManager.serverCache.getUseTimesCache().get(item);
-                if (tempVal3 != null) {
-                    playerBuyTimes = tempVal3.getBuyUseTimes();
-                    playerSellTimes = tempVal3.getSellUseTimes();
-                    playerTotalBuyTimes = tempVal3.getTotalBuyUseTimes();
-                    playerTotalSellTimes = tempVal3.getTotalSellUseTimes();
-                }
-                if (tempVal4 != null) {
-                    serverBuyTimes = tempVal4.getBuyUseTimes();
-                    serverSellTimes = tempVal4.getSellUseTimes();
-                    serverTotalBuyTimes = tempVal4.getTotalBuyUseTimes();
-                    serverTotalSellTimes = tempVal4.getTotalSellUseTimes();
-                }
-                tempVal1 = CommonUtil.modifyString(player, tempVal1,
-                        "buy-times-player",
-                        replacePlaceholder(playerBuyTimes, offsetAmount, buyOrSell, true),
-                        "sell-times-player",
-                        replacePlaceholder(playerSellTimes, offsetAmount, buyOrSell, false),
-                        "buy-times-server",
-                        replacePlaceholder(serverBuyTimes, offsetAmount, buyOrSell, true),
-                        "sell-times-server",
-                        replacePlaceholder(serverSellTimes, offsetAmount, buyOrSell, false),
-                        "buy-total-player",
-                        replacePlaceholder(playerTotalBuyTimes, offsetAmount,  buyOrSell, true),
-                        "sell-total-player",
-                        replacePlaceholder(playerTotalSellTimes, offsetAmount,  buyOrSell, false),
-                        "buy-total-server",
-                        replacePlaceholder(serverTotalBuyTimes, offsetAmount, buyOrSell, true),
-                        "sell-total-server",
-                        replacePlaceholder(serverTotalSellTimes, offsetAmount, buyOrSell, false),
-                        "last-buy-player", tempVal3 != null ? tempVal3.getBuyLastTimeName() : "",
-                        "last-sell-player", tempVal3 != null ? tempVal3.getSellLastTimeName() : "",
-                        "last-buy-server", tempVal4 != null ? tempVal4.getBuyLastTimeName() : "",
-                        "last-sell-server", tempVal4 != null ? tempVal4.getSellLastTimeName() : "",
-                        "last-reset-buy-player", tempVal3 != null ? tempVal3.getBuyLastResetTimeName() : "",
-                        "last-reset-sell-player", tempVal3 != null ? tempVal3.getSellLastResetTimeName() : "",
-                        "last-reset-buy-server", tempVal4 != null ? tempVal4.getBuyLastResetTimeName() : "",
-                        "last-reset-sell-server", tempVal4 != null ? tempVal4.getSellLastResetTimeName() : "");
+                tempVal1 = AmountVariableUtil.replaceProductVariables(player, tempVal1, item, offsetAmount, buyOrSell);
             }
             cost = MathUtil.doCalculate(TextUtil.withPAPI(tempVal1, player));
         }
@@ -136,14 +89,6 @@ public class ObjectSingleProduct extends AbstractSingleThing {
             return cost.setScale(scale, RoundingMode.HALF_UP);
         }
         return cost;
-    }
-
-    protected String replacePlaceholder(int baseAmount, int offsetAmount, boolean buyOrSell, boolean placeholderBuyOrSell) {
-        // 如果是buy
-        if ((buyOrSell && placeholderBuyOrSell) || (!buyOrSell && !placeholderBuyOrSell)) {
-            return String.valueOf(baseAmount + offsetAmount);
-        }
-        return String.valueOf(baseAmount);
     }
 
 }

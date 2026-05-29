@@ -7,6 +7,7 @@
 - 把数学验证程序 `MathFunctionTest` 移到 `core/src/test/java`，只用于构建时验证，不会打进最终 JAR。
 - 增加了 `:core:testMath` 任务，用来在构建过程中跑 EvalEx 和自定义 `SIGMA` 的表达式验证。
 - 补充了 README 中的数学表达式说明，包含内置函数、布尔写法、占位符和自定义函数。
+- 根据文章《一种解决 Minecraft 服务器常见经济问题的新尝试（理论篇）》补充了动态收购模型参数说明。
 
 ## 项目简介
 
@@ -330,6 +331,322 @@ amount: 'SIGMA(1, 10, "i * i")'
 ```
 
 `SIGMA` 单次最多允许 100000 次迭代，用于保护服务器性能。
+
+### 文章经济模型参数对照
+
+以下参数整理自文章《[一种解决 Minecraft 服务器常见经济问题的新尝试（理论篇）](https://kyochigo.com/archives/1534)》。这篇文章讨论的是一种按玩家额度、历史售出量、时间恢复和服务器经济环境共同决定收购价格的模型。
+
+结论：插件已经补充了文章公式常用的变量入口，可以直接在商品、价格和限购的 `amount` 表达式里使用。玩家活跃时长 `P`、额度相关参数 `Q/Q_B/T`、当前日期 `t`、经济环境指数 `epsilon`、假期环境参数 `alpha/mu/sigma/beta`、特别物价指数 `iota`、随机扰动 `noise`、衰减系数 `lambda`、时间恢复参数 `delta/tau`、周期上限 `nu` 都有对应变量。
+
+仍然不能完全自动还原文章里的“多历史周期序列” `n_i(0)` / `n_i(t_i)`，因为插件原本只保存当前周期次数和累计次数，不保存每一个历史周期的序列。为了解决常用场景，插件额外提供了 `{sell-decayed-player}`、`{sell-total-decayed-player}`、`{sell-decayed-server}`、`{sell-total-decayed-server}` 这类近似衰减后的售出量变量。
+
+文章里的累计收益 `M(n)` 不是 UltimateShop 原有缓存字段，当前没有在插件内新增交易金额历史表。实际收购价格通常只需要单价公式 `p(n)`；如果要展示或限制累计收益，需要用 PlaceholderAPI、数据库统计或后续专门的交易金额缓存来提供。
+
+### 插件内置变量映射
+
+这些变量可以直接写在商品、价格或限购的 `amount` 里，前提是 `config.yml` 中 `placeholder.data.can-used-in-amount: true`。
+
+| 插件变量 | 可对应文章参数 | 含义 |
+| --- | --- | --- |
+| `{sell-times-player}` | `n` | 当前周期内该玩家卖出该物品的次数 |
+| `{sell-total-player}` | `n` | 该玩家累计卖出该物品的次数 |
+| `{sell-times-server}` | 全服 `n` | 当前周期内全服卖出该物品的次数 |
+| `{sell-total-server}` | 全服 `n` | 全服累计卖出该物品的次数 |
+| `{last-sell-player}` | `t` | 距离该玩家上次卖出该物品的秒数 |
+| `{last-reset-sell-player}` | `t` | 距离该玩家该物品卖出次数上次重置的秒数 |
+| `{last-sell-server}` | 全服 `t` | 距离全服上次卖出该物品的秒数 |
+| `{last-reset-sell-server}` | 全服 `t` | 距离全服该物品卖出次数上次重置的秒数 |
+| `{buy-times-player}` | 买入侧 `n` | 当前周期内该玩家买入该物品的次数 |
+| `{buy-total-player}` | 买入侧 `n` | 该玩家累计买入该物品的次数 |
+| `{buy-times-server}` | 全服买入侧 `n` | 当前周期内全服买入该物品的次数 |
+| `{buy-total-server}` | 全服买入侧 `n` | 全服累计买入该物品的次数 |
+| `{active-ticks}` | `P` | 玩家累计游玩 tick 数 |
+| `{active-seconds}` | `P` | 玩家累计游玩秒数 |
+| `{active-minutes}` | `P` | 玩家累计游玩分钟数 |
+| `{active-hours}` / `{P}` | `P` | 玩家累计游玩小时数 |
+| `{current-day-of-year}` / `{day-of-year}` / `{t}` | `t` | 当前日期在一年中的天数，适合环境指数中的假期中心值计算 |
+| `{base-price}` / `{p0}` / `{p_0}` | `p_0` | 物品原始收购价的可选全局配置值，来自 `placeholder.data.economy-model.base-price` |
+| `{quota-base}` / `{Q_B}` | `Q_B` | 保底额度，来自 `placeholder.data.economy-model.quota-base` |
+| `{active-weight}` / `{gamma}` | `gamma` | 活跃权重，来自 `placeholder.data.economy-model.active-weight` |
+| `{total-quota}` / `{T}` | `T` | 当前周期总额度，来自 `placeholder.data.economy-model.total-quota` |
+| `{quota}` / `{Q}` | `Q` | 按 `({Q_B} + {gamma} * {P}) * {T}` 算出的模型额度 |
+| `{environment-index}` / `{epsilon}` | `epsilon(t)` | 手动配置或 PlaceholderAPI 提供的经济环境指数 |
+| `{environment-index-calculated}` / `{epsilon-calculated}` | `epsilon(t)` | 插件按 `alpha/mu/sigma/beta/noise` 预计算出的经济环境指数 |
+| `{special-price-index}` / `{iota}` | `iota(t)` | 特别物价指数 |
+| `{beta}` | `beta(t)` | 周末、小假期等短期时间因素系数 |
+| `{noise}` | `noise(t)` | 随机扰动或周期扰动 |
+| `{noise-sigma}` / `{sigma_n}` | `sigma_n` | Gauss 噪声标准差 |
+| `{noise-x}` / `{x}` | `x` | Gauss 噪声公式中的随机变量 |
+| `{alpha-winter}` / `{alpha_winter}` | `alpha_i` | 寒假影响强度 |
+| `{alpha-summer}` / `{alpha_summer}` | `alpha_i` | 暑假影响强度 |
+| `{alpha-national}` / `{alpha_national}` | `alpha_i` | 国庆假期影响强度 |
+| `{mu-winter}` / `{mu_winter}` | `mu_i` | 寒假时间中值 |
+| `{mu-summer}` / `{mu_summer}` | `mu_i` | 暑假时间中值 |
+| `{mu-national}` / `{mu_national}` | `mu_i` | 国庆假期时间中值 |
+| `{sigma-winter}` / `{sigma_winter}` | `sigma_i` | 寒假影响范围参数 |
+| `{sigma-summer}` / `{sigma_summer}` | `sigma_i` | 暑假影响范围参数 |
+| `{sigma-national}` / `{sigma_national}` | `sigma_i` | 国庆假期影响范围参数 |
+| `{price-decay}` / `{lambda}` | `lambda` | 价格衰减系数 |
+| `{decay-delta}` / `{delta}` | `delta` | 时间恢复速度参数 |
+| `{decay-tau-days}` / `{tau}` | `tau` | 时间恢复曲线中点，单位是天 |
+| `{period-sell-limit}` / `{nu}` | `nu` | 单个周期内的出售数量上限，优先取商品 `sell-times-max-value`，没有时取配置 |
+| `{decay-history-days}` / `{T_history}` | 历史 `T` | 按 `tau + LN(nu - 1) / delta` 推导的历史保留天数，文档中写作 `T_history` 以避免和总额度 `T` 混淆 |
+| `{sell-decayed-player}` | 近似 `n_i(t_i)` | 当前周期内玩家卖出次数经过时间恢复后的近似值 |
+| `{sell-total-decayed-player}` | 近似 `n_i(t_i)` | 玩家累计卖出次数经过时间恢复后的近似值 |
+| `{sell-decayed-server}` | 全服近似 `n_i(t_i)` | 当前周期内全服卖出次数经过时间恢复后的近似值 |
+| `{sell-total-decayed-server}` | 全服近似 `n_i(t_i)` | 全服累计卖出次数经过时间恢复后的近似值 |
+| `{sell-limit-player}` | 额度上限 | 当前玩家个人卖出限制 |
+| `{sell-limit-left-player}` | 剩余额度 | 当前玩家个人卖出剩余额度 |
+| `{sell-limit-server}` | 全服额度上限 | 当前全服卖出限制 |
+| `{sell-limit-left-server}` | 全服剩余额度 | 当前全服卖出剩余额度 |
+
+`last-*` 变量返回的是秒数。如果公式按天计算，可以写成 `{last-sell-player} / 86400`。
+
+这些模型变量的默认值在 `config.yml` 里：
+
+```yaml
+placeholder:
+  data:
+    economy-model:
+      base-price: 0
+      quota-base: 0
+      active-weight: 0
+      total-quota: 0
+      environment-index: 1
+      special-price-index: 1
+      beta: 1
+      noise: 0
+      noise-sigma: 0.025
+      noise-x: 0
+      alpha-winter: 0.15
+      alpha-summer: 0.15
+      alpha-national: 0.075
+      mu-winter: 0
+      mu-summer: 0
+      mu-national: 0
+      sigma-winter: 65536
+      sigma-summer: 65536
+      sigma-national: 33.1776
+      period-sell-limit: 0
+      price-decay: 0.05
+      decay-delta: 1
+      decay-tau-days: 7
+```
+
+这些配置值也可以写 PlaceholderAPI，例如：
+
+```yaml
+environment-index: "%custom_environment_index%"
+special-price-index: "%custom_special_price_index%"
+noise: "{random_daily}"
+```
+
+`p_0` 通常是每个商品自己的基础价格，最直接的写法是在商品 `amount` 里写数字，例如 `100 * E ^ ...`。如果你确实需要统一从配置读取基础价，也可以使用 `{p_0}`。
+
+### 插件变量公式写法
+
+最简单的玩家个人动态收购价：
+
+```yaml
+amount: "ROUND(MAX(1, 100 * E ^ (-{lambda} * {sell-total-player})), 2)"
+```
+
+只按当前周期卖出次数衰减：
+
+```yaml
+amount: "ROUND(MAX(1, 100 * E ^ (-{lambda} * {sell-times-player})), 2)"
+```
+
+带经济环境指数和特别物价指数：
+
+```yaml
+amount: "ROUND(MAX(1, ({epsilon} + {noise}) * {iota} * 100 * E ^ (-{lambda} * {sell-total-player})), 2)"
+```
+
+同时考虑玩家个人售出量和全服售出量：
+
+```yaml
+amount: "ROUND(MAX(1, 100 * E ^ (-{lambda} * {sell-total-player}) * E ^ (-0.001 * {sell-total-server})), 2)"
+```
+
+使用插件提供的近似时间恢复售出量：
+
+```yaml
+amount: "ROUND(MAX(1, ({epsilon} + {noise}) * {iota} * 100 * E ^ (-{lambda} * {sell-decayed-player})), 2)"
+```
+
+如果该商品配置了 sell limit，可用剩余额度控制是否继续收购：
+
+```yaml
+amount: "IF({sell-limit-left-player} != 0, ROUND(MAX(1, ({epsilon} + {noise}) * {iota} * 100 * E ^ (-{lambda} * {sell-decayed-player})), 2), -1)"
+```
+
+按文章额度池思路计算玩家额度，可写在 sell limit 里：
+
+```yaml
+sell-limits:
+  default: "ROUND(({Q_B} + {gamma} * {P}) * {T}, 0)"
+```
+
+#### 玩家额度池
+
+| 参数 | 含义 |
+| --- | --- |
+| `Q` | 单个玩家在周期内获得的收购额度 |
+| `Q_B` | 保底收购额度 |
+| `P` | 玩家活跃时长或活跃系数 |
+| `gamma` | 活跃时长权重系数 |
+| `T` | 当前周期的总收购额度 |
+
+可写成近似权重表达式：
+
+```text
+(Q_B + gamma * P) * T
+```
+
+落到配置里时可以直接使用插件变量，例如作为个人卖出限额：
+
+```yaml
+sell-limits:
+  default: "ROUND(({Q_B} + {gamma} * {P}) * {T}, 0)"
+```
+
+#### 动态收购价格
+
+| 参数 | 含义 |
+| --- | --- |
+| `p(n)` | 某玩家售出某物品达到历史数量 `n` 后的单价 |
+| `M(n)` | 玩家通过该物品累计获得的货币量 |
+| `n` | 玩家对该物品的历史售出数量 |
+| `lambda` | 价格衰减系数，越大则价格下降越快 |
+| `p_0` | 物品原始收购价 |
+| `epsilon(t)` | 经济环境指数 |
+| `iota(t)` | 特别物价指数，例如活动期间指定物品涨价 |
+| `t` | 当前时间、周期或距离出售记录产生的时间 |
+
+文章中的核心单价模型可以转成 EvalEx 写法：
+
+```text
+epsilon * iota * p_0 * E ^ (-lambda * n)
+```
+
+如果直接使用 UltimateShop 的玩家历史卖出总量，可以写成：
+
+```yaml
+amount: "{epsilon} * {iota} * 100 * E ^ (-{lambda} * {sell-total-player})"
+```
+
+也可以使用 `min-amount` 或 `MAX` 给价格设置底线：
+
+```yaml
+amount: "MAX(1, {epsilon} * {iota} * 100 * E ^ (-{lambda} * {sell-total-player}))"
+```
+
+#### 时间恢复与历史售出量衰减
+
+| 参数 | 含义 |
+| --- | --- |
+| `n(0)` | 某周期内最初记录的售出数量 |
+| `n_i(0)` | 第 `i` 个历史周期内最初记录的售出数量 |
+| `n_i(t_i)` | 第 `i` 个历史周期经过时间 `t_i` 后仍然计入的有效售出数量 |
+| `delta` | 逆时间系数，控制恢复速度 |
+| `tau` | 时间系数，控制衰减曲线中点 |
+| `nu` | 单个周期内的出售数量上限 |
+| `T_history` | 需要保留和计算的最大历史时间，避免和总额度 `T` 混淆 |
+| `i` | 历史周期编号 |
+
+单个周期的有效售出量可以写成：
+
+```text
+FLOOR(n_0 / (E ^ (delta * (t - tau)) + 1))
+```
+
+插件没有保存每个历史周期的售出序列，但提供了按当前次数和经过时间估算后的衰减变量：
+
+```yaml
+amount: "MAX(1, 100 * E ^ (-{lambda} * {sell-decayed-player}))"
+```
+
+`{nu}` 会优先读取商品的 `sell-times-max-value`，没有配置时读取 `placeholder.data.economy-model.period-sell-limit`。`{T_history}` 会按 `tau + LN(nu - 1) / delta` 的含义在插件内部用自然对数推导出历史保留天数，方便估算这个衰减模型需要保留多久的历史。
+
+如果想按累计售出量做时间恢复，可以使用：
+
+```yaml
+amount: "MAX(1, 100 * E ^ (-{lambda} * {sell-total-decayed-player}))"
+```
+
+#### 经济环境指数
+
+| 参数 | 含义 |
+| --- | --- |
+| `alpha_i` | 中长假期对经济环境指数的影响强度 |
+| `mu_i` | 某个中长假期的时间中值 |
+| `sigma_i` | 某个中长假期影响范围的宽度参数 |
+| `beta(t)` | 周末、小假期等短期时间因素的系数 |
+| `noise(t)` | 随机扰动，用于制造不可预测的小幅波动 |
+| `sigma_n` | Gauss 噪声标准差 |
+| `x` | Gauss 分布密度函数中的随机变量 |
+
+文章中给出的参考取值：
+
+| 参数 | 参考值 |
+| --- | --- |
+| `alpha_winter` | `0.15` |
+| `alpha_summer` | `0.15` |
+| `alpha_national` | `0.075` |
+| `sigma_winter` | 满足 `sigma_winter ^ 0.25 = 16` |
+| `sigma_summer` | 满足 `sigma_summer ^ 0.25 = 16` |
+| `sigma_national` | 满足 `sigma_national ^ 0.25 = 2.4` |
+| `sigma_n` | `0.025` |
+| `beta(t)` | 小假期为 `0.95`，普通周末为 `0.98`，其它时间为 `1` |
+
+插件提供了 `{epsilon-calculated}` 来按文章思路预计算环境指数。`{t}` 是当前日期在一年中的天数，`mu_*` 也建议按同一单位配置。预计算结构相当于：
+
+```text
+(1 - (
+  {alpha_winter} * E ^ (-(({t} - {mu_winter}) ^ 6) / (2 * {sigma_winter} ^ 2)) +
+  {alpha_summer} * E ^ (-(({t} - {mu_summer}) ^ 6) / (2 * {sigma_summer} ^ 2)) +
+  {alpha_national} * E ^ (-(({t} - {mu_national}) ^ 6) / (2 * {sigma_national} ^ 2))
+)) * {beta} + {noise}
+```
+
+如果要直接放进价格，建议使用预计算后的变量，避免 EvalEx 在极大负指数上产生溢出：
+
+```yaml
+amount: "ROUND(MAX(1, {epsilon-calculated} * {iota} * 100 * E ^ (-{lambda} * {sell-decayed-player})), 2)"
+```
+
+`noise(t)` 这类随机扰动不适合直接放进商店价格表达式里每次点击都重新随机，否则玩家看到的价格可能频繁跳动。更稳的做法是用定时任务、脚本或随机占位符按周期生成一个固定值，再通过 PlaceholderAPI 或自定义占位符传入。
+
+```yaml
+amount: "({epsilon} + {noise}) * {iota} * 100 * E ^ (-{lambda} * {sell-total-player})"
+```
+
+#### 特别物价指数
+
+| 参数 | 含义 |
+| --- | --- |
+| `iota(t)` | 人工设置的特别物价指数 |
+
+它适合用在活动、节日或主题收购里。例如伐木节期间让原木类物品价格提高：
+
+```yaml
+amount: "{epsilon} * 1.25 * 100 * E ^ (-{lambda} * {sell-total-player})"
+```
+
+#### 四舍五入
+
+文章里的 `round(x, n)` 对应 EvalEx 的：
+
+```text
+ROUND(x, n)
+```
+
+例如：
+
+```yaml
+amount: "ROUND({epsilon} * 100 * E ^ (-{lambda} * {sell-total-player}), 2)"
+```
 
 ---
 
