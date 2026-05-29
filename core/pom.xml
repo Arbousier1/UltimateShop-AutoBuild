@@ -223,15 +223,15 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.github.Ssomar-Developement</groupId>
+            <groupId>com.ssomar.score</groupId>
             <artifactId>SCore</artifactId>
-            <version>5.25.3.9</version>
+            <version>5.24.7.9</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.Ssomar-Developement</groupId>
+            <groupId>com.ssomar.score</groupId>
             <artifactId>ExecutableItems</artifactId>
-            <version>master-SNAPSHOT</version>
+            <version>7.24.7.9</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -435,6 +435,30 @@
                             <groupId>me.qKing12</groupId>
                             <artifactId>RoyaleEconomyAPI</artifactId>
                             <version>1.0.0</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-score</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/SCore-5.24.7.9.jar</file>
+                            <groupId>com.ssomar.score</groupId>
+                            <artifactId>SCore</artifactId>
+                            <version>5.24.7.9</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-executableitems</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/ExecutableItems-7.24.7.9.jar</file>
+                            <groupId>com.ssomar.score</groupId>
+                            <artifactId>ExecutableItems</artifactId>
+                            <version>7.24.7.9</version>
                             <packaging>jar</packaging>
                         </configuration>
                     </execution>
