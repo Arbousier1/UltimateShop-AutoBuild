@@ -119,6 +119,7 @@ jobs:
       - name: Push changes to origin
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
+          git pull --rebase origin master
           git push origin master
           echo "Changes pushed to origin/master"
 
