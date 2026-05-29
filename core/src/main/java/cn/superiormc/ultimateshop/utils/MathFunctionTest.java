@@ -55,7 +55,7 @@ public class MathFunctionTest {
         }
     }
 
-    static BigDecimal calc(String expr) {
+    static BigDecimal calc(String expr) throws EvaluationException {
         return new Expression(expr, config).evaluate().getNumberValue()
                 .setScale(10, RoundingMode.HALF_UP).stripTrailingZeros();
     }
