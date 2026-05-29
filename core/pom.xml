@@ -415,18 +415,6 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>install-mmoitems</id>
-                        <phase>initialize</phase>
-                        <goals><goal>install-file</goal></goals>
-                        <configuration>
-                            <file>${project.basedir}/lib/MMOItems-API-6.10.1-20251204.191337-43.jar</file>
-                            <groupId>net.Indyuce</groupId>
-                            <artifactId>MMOItems-API</artifactId>
-                            <version>6.10.1-SNAPSHOT</version>
-                            <packaging>jar</packaging>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>install-advancedenchantments</id>
                         <phase>initialize</phase>
                         <goals><goal>install-file</goal></goals>

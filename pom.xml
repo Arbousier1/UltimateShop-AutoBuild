@@ -231,6 +231,11 @@
             <url>https://mvn.lumine.io/repository/maven-public/</url>
         </repository>
         <repository>
+            <id>phoenix</id>
+            <name>PhoenixDevelopment</name>
+            <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
+        </repository>
+        <repository>
             <id>codemc-snapshots</id>
             <url>https://repo.codemc.org/repository/maven-snapshots</url>
         </repository>
