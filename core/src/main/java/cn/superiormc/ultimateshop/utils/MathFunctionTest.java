@@ -6,6 +6,7 @@ import com.ezylang.evalex.config.ExpressionConfiguration;
 import com.ezylang.evalex.data.EvaluationValue;
 import com.ezylang.evalex.functions.AbstractFunction;
 import com.ezylang.evalex.functions.FunctionParameter;
+import com.ezylang.evalex.parser.ParseException;
 import com.ezylang.evalex.parser.Token;
 
 import java.math.BigDecimal;
@@ -55,7 +56,7 @@ public class MathFunctionTest {
         }
     }
 
-    static BigDecimal calc(String expr) throws EvaluationException {
+    static BigDecimal calc(String expr) throws EvaluationException, ParseException {
         return new Expression(expr, config).evaluate().getNumberValue()
                 .setScale(10, RoundingMode.HALF_UP).stripTrailingZeros();
     }
