@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class MathFunctionTest {
 
-    private static final int SIGMA_MAX_ITERATIONS = 100000;
+    private static final int SIGMA_MAX_ITERATIONS = 100_000;
     private static final ExpressionConfiguration config;
     private static int passed;
     private static int failed;

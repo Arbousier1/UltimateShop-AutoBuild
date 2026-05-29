@@ -65,5 +65,6 @@ tasks.register<JavaExec>("testMath") {
     group = "verification"
     description = "Run EvalEx + SIGMA accuracy tests"
     mainClass.set("cn.superiormc.ultimateshop.utils.MathFunctionTest")
-    classpath = sourceSets["main"].runtimeClasspath
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
 }
