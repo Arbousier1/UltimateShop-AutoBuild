@@ -2,7 +2,7 @@ package cn.superiormc.ultimateshop.utils;
 
 import cn.superiormc.ultimateshop.managers.ConfigManager;
 import cn.superiormc.ultimateshop.managers.ErrorManager;
-import redempt.crunch.Crunch;
+import com.ezylang.evalex.Expression;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -57,7 +57,7 @@ public class MathUtil {
             if (!ConfigManager.configManager.getBoolean("math.enabled")) {
                 return new BigDecimal(mathStr);
             }
-            return BigDecimal.valueOf(Crunch.evaluateExpression(mathStr)).setScale(scale, RoundingMode.HALF_UP);
+            return new Expression(mathStr).evaluate().getNumberValue().setScale(scale, RoundingMode.HALF_UP);
         }
         catch (Throwable throwable) {
             if (ConfigManager.configManager.getBoolean("debug")) {

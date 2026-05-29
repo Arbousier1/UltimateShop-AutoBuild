@@ -29,7 +29,7 @@ dependencies {
     compileOnly("me.TechsCode:UltraEconomyAPI:1.1.2")
     compileOnly("com.willfp:EcoBits:1.8.4")
     compileOnly(files("lib/RoyaleEconomyAPI.jar"))
-    implementation("com.github.Redempt:Crunch:2.0")
+    implementation("com.ezylang:EvalEx:3.6.1")
     compileOnly("com.bencodez:votingplugin:6.16.3")
     compileOnly(files("lib/SCore-5.26.5.17.jar"))
     compileOnly(files("lib/ExecutableItems-7.26.5.17.jar"))
