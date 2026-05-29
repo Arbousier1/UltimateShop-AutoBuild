@@ -34,5 +34,7 @@ tasks.build {
 
 tasks.processResources {
     filteringCharset = "UTF-8"
-    expand(project.properties)
+    filesMatching("plugin.yml") {
+        expand(project.properties + mapOf("revision" to project.version.toString()))
+    }
 }
