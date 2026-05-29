@@ -97,9 +97,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.advancedplugins</groupId>
-            <artifactId>AdvancedEnchantments</artifactId>
-            <version>1.0.0</version>
+            <groupId>advancedplugins</groupId>
+            <artifactId>AdvancedEnchantments-API</artifactId>
+            <version>8.7.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -420,9 +420,9 @@
                         <goals><goal>install-file</goal></goals>
                         <configuration>
                             <file>${project.basedir}/lib/AdvancedEnchantmentsAPI.jar</file>
-                            <groupId>net.advancedplugins</groupId>
-                            <artifactId>AdvancedEnchantments</artifactId>
-                            <version>1.0.0</version>
+                            <groupId>advancedplugins</groupId>
+                            <artifactId>AdvancedEnchantments-API</artifactId>
+                            <version>8.7.4</version>
                             <packaging>jar</packaging>
                         </configuration>
                     </execution>
