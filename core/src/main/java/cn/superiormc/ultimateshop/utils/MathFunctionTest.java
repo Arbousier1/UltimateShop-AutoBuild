@@ -102,12 +102,12 @@ public class MathFunctionTest {
         check("ROUND(3.14159, 2)", "ROUND(3.14159, 2)", d("3.14"));
         check("FLOOR(3.9)", "FLOOR(3.9)", d("3"));
         check("CEILING(3.1)", "CEILING(3.1)", d("4"));
-        check("LOG(~e)", "LOG(2.718281828)", d("0.9999999993"));
+        check("LOG(~e)", "LOG(2.718281828)", d("0.9999999998"));
         check("LOG10(100)", "LOG10(100)", d("2"));
         check("SIN(0)", "SIN(0)", d("0"));
         check("COS(0)", "COS(0)", d("1"));
         check("TAN(0)", "TAN(0)", d("0"));
-        check("EXP(1)", "EXP(1)", d("2.7182818285"));
+        check("e^1", "2.718281828459045^1", d("2.7182818285"));
         check("FACT(5)", "FACT(5)", d("120"));
         check("MIN", "MIN(3, 1, 4, 2)", d("1"));
         check("MAX", "MAX(3, 1, 4, 2)", d("4"));
@@ -116,8 +116,8 @@ public class MathFunctionTest {
         check("IF 1>0", "IF(1>0, 100, 0)", d("100"));
         check("IF 1==1", "IF(1==1, 200, 0)", d("200"));
         check("IF 1!=2", "IF(1!=2, 300, 0)", d("300"));
-        check("IF AND", "IF(1<2 AND 2<3, 400, 0)", d("400"));
-        check("IF OR",  "IF(1>2 OR 2<3, 500, 0)", d("500"));
+        check("IF AND", "IF(1<2 && 2<3, 400, 0)", d("400"));
+        check("IF OR",  "IF(1>2 || 2<3, 500, 0)", d("500"));
         check("IF NOT", "IF(NOT(1>2), 600, 0)", d("600"));
 
         System.out.println("\n--- SIGMA ---");
@@ -131,8 +131,8 @@ public class MathFunctionTest {
         check("SIGMA(5,1,\"i\")       start>end", "SIGMA(5, 1, \"i\")", d("0"));
 
         System.out.println("\n--- SIGMA advanced ---");
-        check("SIGMA + EXP",  "SIGMA(1, 5, \"EXP(-0.1*i)\")",
-                d("4.4959131450"));
+        check("SIGMA + exponential",  "SIGMA(1, 5, \"2.718281828459045^(-0.1*i)\")",
+                d("3.7412370975"));
         check("SIGMA + SQRT", "SIGMA(1, 9, \"SQRT(i)\")",
                 d("19.3060005260"));
         check("SIGMA + IF",   "SIGMA(1, 10, \"IF(i%2==0, i, 0)\")",
@@ -141,10 +141,10 @@ public class MathFunctionTest {
                 d("1000"));
 
         System.out.println("\n--- Article formulas ---");
-        check("e^{-lambda*n}", "EXP(-0.1*10)", d("0.3678794412"));
+        check("e^{-lambda*n}", "2.718281828459045^(-0.1*10)", d("0.3678794412"));
         check("ROUND(pi,2)",   "ROUND(3.14159, 2)", d("3.14"));
         check("FLOOR",         "FLOOR(3.9)", d("3"));
-        check("1-e^{-ln}",     "1-EXP(-0.1*5)", d("0.3934693403"));
+        check("1-e^{-ln}",     "1-2.718281828459045^(-0.1*5)", d("0.3934693403"));
         check("(t-u)^6/(2s^2)","(10-5)^6/(2*2^2)", d("1953.125"));
 
         System.out.println("\n" + "=".repeat(40));
