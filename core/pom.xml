@@ -225,7 +225,7 @@
         <dependency>
             <groupId>com.ssomar.score</groupId>
             <artifactId>SCore</artifactId>
-            <version>5.24.7.9</version>
+            <version>5.26.5.17</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -402,7 +402,7 @@
                 <executions>
                     <execution>
                         <id>install-local-jars</id>
-                        <phase>initialize</phase>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
@@ -417,7 +417,7 @@
                     </execution>
                     <execution>
                         <id>install-advancedenchantments</id>
-                        <phase>initialize</phase>
+                        <phase>validate</phase>
                         <goals><goal>install-file</goal></goals>
                         <configuration>
                             <file>${project.basedir}/lib/AdvancedEnchantmentsAPI.jar</file>
@@ -430,7 +430,7 @@
                     </execution>
                     <execution>
                         <id>install-royaleeconomy</id>
-                        <phase>initialize</phase>
+                        <phase>validate</phase>
                         <goals><goal>install-file</goal></goals>
                         <configuration>
                             <file>${project.basedir}/lib/RoyaleEconomyAPI.jar</file>
@@ -443,20 +443,20 @@
                     </execution>
                     <execution>
                         <id>install-score</id>
-                        <phase>initialize</phase>
+                        <phase>validate</phase>
                         <goals><goal>install-file</goal></goals>
                         <configuration>
-                            <file>${project.basedir}/lib/SCore-5.24.7.9.jar</file>
+                            <file>${project.basedir}/lib/SCore-5.26.5.17.jar</file>
                             <groupId>com.ssomar.score</groupId>
                             <artifactId>SCore</artifactId>
-                            <version>5.24.7.9</version>
+                            <version>5.26.5.17</version>
                             <packaging>jar</packaging>
                             <generatePom>true</generatePom>
                         </configuration>
                     </execution>
                     <execution>
                         <id>install-executableitems</id>
-                        <phase>initialize</phase>
+                        <phase>validate</phase>
                         <goals><goal>install-file</goal></goals>
                         <configuration>
                             <file>${project.basedir}/lib/ExecutableItems-7.26.5.17.jar</file>

@@ -90,6 +90,11 @@ jobs:
             "https://drive.google.com/uc?export=download&id=1hKDkZg9yOJZydd2WugaAi9nfWspwEqJr"; then
             echo "RoyaleEconomyAPI download skipped (using local jar)"
           fi
+          echo "Downloading SCore..."
+          if ! wget -q -O core/lib/SCore-5.26.5.17.jar \
+            "https://cdn-alt.modrinth.com/data/ZfcV7L06/versions/ddOkhdsg/SCore-5.26.5.17.jar?mr_download_reason=standalone"; then
+            echo "SCore download skipped (using local jar)"
+          fi
           echo "Downloading ExecutableItems..."
           if ! wget -q -O core/lib/ExecutableItems-7.26.5.17.jar \
             "https://cdn-alt.modrinth.com/data/g8Zwnnmn/versions/YzKhzwRI/ExecutableItems-7.26.5.17.jar?mr_download_reason=standalone"; then
@@ -104,6 +109,7 @@ jobs:
       - name: Build with Maven
         if: steps.check_changes.outputs.has_changes == 'true' || github.event.inputs.force_build == 'true'
         run: |
+          rm -rf ~/.m2/repository/com/ssomar/score
           mvn clean package -B
           JAR_FILE=$(find plugin/target -name "UltimateShop-*.jar" ! -name "*sources.jar" ! -name "*javadoc.jar" | head -1)
           if [ -n "$JAR_FILE" ]; then
