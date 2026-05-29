@@ -16,8 +16,7 @@
             <groupId>cn.superiormc.ultimateshop</groupId>
             <artifactId>LegacyCodesCompatibility</artifactId>
             <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/LegacyCodesCompatibility.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
@@ -65,15 +64,13 @@
             <groupId>io.lumine</groupId>
             <artifactId>MythicLib</artifactId>
             <version>1.7.1</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/MythicLib-dist-1.7.1-20251205.145545-63.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.Indyuce</groupId>
             <artifactId>MMOItems-API</artifactId>
             <version>6.10.1-SNAPSHOT</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/MMOItems-API-6.10.1-20251204.191337-43.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.LoneDev6</groupId>
@@ -103,8 +100,7 @@
             <groupId>net.advancedplugins</groupId>
             <artifactId>AdvancedEnchantments</artifactId>
             <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/AdvancedEnchantmentsAPI.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.luckperms</groupId>
@@ -206,8 +202,7 @@
             <groupId>me.qKing12</groupId>
             <artifactId>RoyaleEconomyAPI</artifactId>
             <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/RoyaleEconomyAPI.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.Redempt</groupId>
@@ -231,15 +226,13 @@
             <groupId>com.ssomar.score</groupId>
             <artifactId>SCore</artifactId>
             <version>5.24.7.8</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/SCore-5.24.7.9.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.ssomar.score</groupId>
             <artifactId>ExecutableItems</artifactId>
             <version>7.24.7.9</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/ExecutableItems-7.24.7.9.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.json</groupId>
@@ -268,8 +261,7 @@
             <groupId>com.bekvon.bukkit.residence</groupId>
             <artifactId>Residence</artifactId>
             <version>5.1.6.2</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/Residence5.1.6.2.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.GriefPrevention</groupId>
@@ -386,8 +378,7 @@
             <groupId>com.github.Zrips</groupId>
             <artifactId>CMI-API</artifactId>
             <version>9.7.14.3</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/CMI-API-9.7.14.3.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>de.oliver</groupId>
@@ -404,6 +395,123 @@
     </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.2</version>
+                <executions>
+                    <execution>
+                        <id>install-local-jars</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/LegacyCodesCompatibility.jar</file>
+                            <groupId>cn.superiormc.ultimateshop</groupId>
+                            <artifactId>LegacyCodesCompatibility</artifactId>
+                            <version>1.0.0</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-mythiclib</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/MythicLib-dist-1.7.1-20251205.145545-63.jar</file>
+                            <groupId>io.lumine</groupId>
+                            <artifactId>MythicLib</artifactId>
+                            <version>1.7.1</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-mmoitems</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/MMOItems-API-6.10.1-20251204.191337-43.jar</file>
+                            <groupId>net.Indyuce</groupId>
+                            <artifactId>MMOItems-API</artifactId>
+                            <version>6.10.1-SNAPSHOT</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-advancedenchantments</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/AdvancedEnchantmentsAPI.jar</file>
+                            <groupId>net.advancedplugins</groupId>
+                            <artifactId>AdvancedEnchantments</artifactId>
+                            <version>1.0.0</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-royaleeconomy</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/RoyaleEconomyAPI.jar</file>
+                            <groupId>me.qKing12</groupId>
+                            <artifactId>RoyaleEconomyAPI</artifactId>
+                            <version>1.0.0</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-score</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/SCore-5.24.7.9.jar</file>
+                            <groupId>com.ssomar.score</groupId>
+                            <artifactId>SCore</artifactId>
+                            <version>5.24.7.8</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-executableitems</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/ExecutableItems-7.24.7.9.jar</file>
+                            <groupId>com.ssomar.score</groupId>
+                            <artifactId>ExecutableItems</artifactId>
+                            <version>7.24.7.9</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-residence</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/Residence5.1.6.2.jar</file>
+                            <groupId>com.bekvon.bukkit.residence</groupId>
+                            <artifactId>Residence</artifactId>
+                            <version>5.1.6.2</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-cmi-api</id>
+                        <phase>initialize</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${project.basedir}/lib/CMI-API-9.7.14.3.jar</file>
+                            <groupId>com.github.Zrips</groupId>
+                            <artifactId>CMI-API</artifactId>
+                            <version>9.7.14.3</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
