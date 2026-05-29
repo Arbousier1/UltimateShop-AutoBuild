@@ -412,6 +412,7 @@
                             <artifactId>LegacyCodesCompatibility</artifactId>
                             <version>1.0.0</version>
                             <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
                         </configuration>
                     </execution>
                     <execution>
@@ -424,6 +425,7 @@
                             <artifactId>AdvancedEnchantments-API</artifactId>
                             <version>8.7.4</version>
                             <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
                         </configuration>
                     </execution>
                     <execution>
@@ -436,6 +438,7 @@
                             <artifactId>RoyaleEconomyAPI</artifactId>
                             <version>1.0.0</version>
                             <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
                         </configuration>
                     </execution>
                     <execution>
@@ -448,6 +451,7 @@
                             <artifactId>SCore</artifactId>
                             <version>5.24.7.9</version>
                             <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
                         </configuration>
                     </execution>
                     <execution>
@@ -460,6 +464,7 @@
                             <artifactId>ExecutableItems</artifactId>
                             <version>7.26.5.17</version>
                             <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
                         </configuration>
                     </execution>
                 </executions>
