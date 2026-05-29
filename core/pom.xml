@@ -258,9 +258,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.bekvon.bukkit.residence</groupId>
+            <groupId>com.github.Zrips</groupId>
             <artifactId>Residence</artifactId>
-            <version>5.1.6.2</version>
+            <version>master-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -435,18 +435,6 @@
                             <groupId>me.qKing12</groupId>
                             <artifactId>RoyaleEconomyAPI</artifactId>
                             <version>1.0.0</version>
-                            <packaging>jar</packaging>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>install-residence</id>
-                        <phase>initialize</phase>
-                        <goals><goal>install-file</goal></goals>
-                        <configuration>
-                            <file>${project.basedir}/lib/Residence5.1.6.2.jar</file>
-                            <groupId>com.bekvon.bukkit.residence</groupId>
-                            <artifactId>Residence</artifactId>
-                            <version>5.1.6.2</version>
                             <packaging>jar</packaging>
                         </configuration>
                     </execution>
