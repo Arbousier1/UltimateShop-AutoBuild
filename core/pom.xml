@@ -377,7 +377,7 @@
         <dependency>
             <groupId>com.github.Zrips</groupId>
             <artifactId>CMI-API</artifactId>
-            <version>9.7.14.3</version>
+            <version>9.8.6.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -411,18 +411,6 @@
                             <groupId>cn.superiormc.ultimateshop</groupId>
                             <artifactId>LegacyCodesCompatibility</artifactId>
                             <version>1.0.0</version>
-                            <packaging>jar</packaging>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>install-mythiclib</id>
-                        <phase>initialize</phase>
-                        <goals><goal>install-file</goal></goals>
-                        <configuration>
-                            <file>${project.basedir}/lib/MythicLib-dist-1.7.1-20251205.145545-63.jar</file>
-                            <groupId>io.lumine</groupId>
-                            <artifactId>MythicLib</artifactId>
-                            <version>1.7.1</version>
                             <packaging>jar</packaging>
                         </configuration>
                     </execution>
@@ -495,18 +483,6 @@
                             <groupId>com.bekvon.bukkit.residence</groupId>
                             <artifactId>Residence</artifactId>
                             <version>5.1.6.2</version>
-                            <packaging>jar</packaging>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>install-cmi-api</id>
-                        <phase>initialize</phase>
-                        <goals><goal>install-file</goal></goals>
-                        <configuration>
-                            <file>${project.basedir}/lib/CMI-API-9.7.14.3.jar</file>
-                            <groupId>com.github.Zrips</groupId>
-                            <artifactId>CMI-API</artifactId>
-                            <version>9.7.14.3</version>
                             <packaging>jar</packaging>
                         </configuration>
                     </execution>
