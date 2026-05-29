@@ -86,6 +86,9 @@ jobs:
           echo "Downloading RoyaleEconomyAPI..."
           wget -q -O core/lib/RoyaleEconomyAPI.jar \
             "https://drive.google.com/uc?export=download&id=1hKDkZg9yOJZydd2WugaAi9nfWspwEqJr"
+          echo "Downloading LegacyCodesCompatibility..."
+          wget -q -O core/lib/LegacyCodesCompatibility.jar \
+            "https://raw.githubusercontent.com/ManyouTeam/UltimateShop/master/core/lib/LegacyCodesCompatibility.jar"
 
       - name: Build with Maven
         if: steps.check_changes.outputs.has_changes == 'true' || github.event.inputs.force_build == 'true'
