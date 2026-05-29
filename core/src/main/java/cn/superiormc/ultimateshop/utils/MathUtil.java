@@ -2,7 +2,13 @@ package cn.superiormc.ultimateshop.utils;
 
 import cn.superiormc.ultimateshop.managers.ConfigManager;
 import cn.superiormc.ultimateshop.managers.ErrorManager;
+import com.ezylang.evalex.EvaluationException;
 import com.ezylang.evalex.Expression;
+import com.ezylang.evalex.config.ExpressionConfiguration;
+import com.ezylang.evalex.data.EvaluationValue;
+import com.ezylang.evalex.functions.AbstractFunction;
+import com.ezylang.evalex.functions.FunctionParameter;
+import com.ezylang.evalex.parser.Token;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,13 +24,21 @@ public class MathUtil {
 
     public static DecimalFormat decimalFormat;
 
+    private static ExpressionConfiguration expressionConfig;
+
+    private static final int SIGMA_MAX_ITERATIONS = 100000;
+
     public static void init() {
-        scale =  ConfigManager.configManager.getInt("math.scale", 2);
+        scale = ConfigManager.configManager.getInt("math.scale", 2);
         String integerPattern = ConfigManager.configManager.getString("number-display.format.integer", "#,##0");
         String decimalPattern = ConfigManager.configManager.getString("number-display.format.decimal", "#,##0.00##########");
         DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(Locale.US);
         integerFormat = new DecimalFormat(integerPattern, symbols);
         decimalFormat = new DecimalFormat(decimalPattern, symbols);
+
+        expressionConfig = ExpressionConfiguration.builder()
+                .function("SIGMA", new SigmaFunction())
+                .build();
     }
 
     public static double multiply(double left, double right) {
@@ -57,9 +71,10 @@ public class MathUtil {
             if (!ConfigManager.configManager.getBoolean("math.enabled")) {
                 return new BigDecimal(mathStr);
             }
-            return new Expression(mathStr).evaluate().getNumberValue().setScale(scale, RoundingMode.HALF_UP);
-        }
-        catch (Throwable throwable) {
+            return new Expression(mathStr, expressionConfig).evaluate()
+                    .getNumberValue()
+                    .setScale(scale, RoundingMode.HALF_UP);
+        } catch (Throwable throwable) {
             if (ConfigManager.configManager.getBoolean("debug")) {
                 throwable.printStackTrace();
             }
@@ -67,6 +82,38 @@ public class MathUtil {
                     mathStr + " can not be read as a number, maybe " +
                     "set math.enabled to false in config.yml maybe solve this problem!");
             return BigDecimal.ZERO;
+        }
+    }
+
+    @FunctionParameter(name = "start")
+    @FunctionParameter(name = "end")
+    @FunctionParameter(name = "body")
+    public static class SigmaFunction extends AbstractFunction {
+
+        @Override
+        public EvaluationValue evaluate(EvaluationValue... args) {
+            int start = args[0].getNumberValue().intValue();
+            int end = args[1].getNumberValue().intValue();
+            String body = args[2].getStringValue();
+
+            if (start > end) {
+                return EvaluationValue.numberValue(BigDecimal.ZERO);
+            }
+
+            int count = end - start + 1;
+            if (count > SIGMA_MAX_ITERATIONS) {
+                throw new EvaluationException(
+                        new Token(0, body),
+                        "SIGMA: too many iterations (" + count + "), maximum is " + SIGMA_MAX_ITERATIONS);
+            }
+
+            BigDecimal sum = BigDecimal.ZERO;
+            for (int i = start; i <= end; i++) {
+                Expression subExpr = new Expression(body, expressionConfig)
+                        .with("i", BigDecimal.valueOf(i));
+                sum = sum.add(subExpr.evaluate().getNumberValue());
+            }
+            return EvaluationValue.numberValue(sum);
         }
     }
 }
