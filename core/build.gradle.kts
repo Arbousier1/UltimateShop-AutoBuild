@@ -1,11 +1,5 @@
-repositories {
-    flatDir {
-        dirs("lib")
-    }
-}
-
 dependencies {
-    compileOnly("cn.superiormc.ultimateshop:LegacyCodesCompatibility:1.0.0")
+    compileOnly(files("lib/LegacyCodesCompatibility.jar"))
     compileOnly("net.kyori:adventure-api:4.25.0")
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("org.bstats:bstats-bukkit:3.0.2")
@@ -18,7 +12,7 @@ dependencies {
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
     compileOnly("org.black_ixx:playerpoints:3.2.4")
     compileOnly("com.willfp:EcoItems:5.10.4")
-    compileOnly("advancedplugins:AdvancedEnchantments-API:8.7.4")
+    compileOnly(files("lib/AdvancedEnchantmentsAPI.jar"))
     compileOnly("net.luckperms:api:5.4")
     compileOnly("com.github.Emibergo02:RedisEconomy:4.3.19")
     compileOnly("me.soknight:peconomy:2.7.3")
@@ -32,11 +26,11 @@ dependencies {
     compileOnly("su.nightexpress.coinsengine:CoinsEngine:2.7.0")
     compileOnly("me.TechsCode:UltraEconomyAPI:1.1.2")
     compileOnly("com.willfp:EcoBits:1.8.4")
-    compileOnly("me.qKing12:RoyaleEconomyAPI:1.0.0")
+    compileOnly(files("lib/RoyaleEconomyAPI.jar"))
     compileOnly("com.github.Redempt:Crunch:2.0")
     compileOnly("com.bencodez:votingplugin:6.16.3")
-    compileOnly("com.ssomar.score:SCore:5.26.5.17")
-    compileOnly("com.ssomar.score:ExecutableItems:7.26.5.17")
+    compileOnly(files("lib/SCore-5.26.5.17.jar"))
+    compileOnly(files("lib/ExecutableItems-7.26.5.17.jar"))
     compileOnly("org.json:json:20210307")
     compileOnly("cn.superiormc.mythicchanger:plugin:3.0.7")
     compileOnly("com.nexomc:nexo:1.0.0")

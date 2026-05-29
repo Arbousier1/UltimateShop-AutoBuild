@@ -44,7 +44,7 @@ subprojects {
         maven("https://repo.gtemc.net/releases/")
     }
 
-    java {
+    configure<JavaPluginExtension> {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(21))
         }
