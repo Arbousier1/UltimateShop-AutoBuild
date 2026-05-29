@@ -124,8 +124,9 @@ jobs:
       - name: Build with Gradle
         if: steps.check_changes.outputs.has_changes == 'true' || github.event.inputs.force_build == 'true'
         run: |
-          gradle clean shadowJar --no-daemon
-          JAR_FILE=$(find plugin/target -name "UltimateShop-*.jar" ! -name "*sources.jar" ! -name "*javadoc.jar" | head -1)
+          chmod +x gradlew
+          ./gradlew clean shadowJar --no-daemon
+          JAR_FILE=$(find plugin/build/libs -name "UltimateShop-*.jar" ! -name "*sources.jar" ! -name "*javadoc.jar" | head -1)
           if [ -n "$JAR_FILE" ]; then
             echo "Build successful!"
             ls -lh "$JAR_FILE"
@@ -140,9 +141,9 @@ jobs:
         with:
           name: UltimateShop-Build
           path: |
-            plugin/target/UltimateShop-*.jar
-            !plugin/target/*-sources.jar
-            !plugin/target/*-javadoc.jar
+            plugin/build/libs/UltimateShop-*.jar
+            !plugin/build/libs/*-sources.jar
+            !plugin/build/libs/*-javadoc.jar
           retention-days: 30
 
       - name: Create Release
@@ -155,7 +156,7 @@ jobs:
             Automated build after syncing with upstream ${{ env.UPSTREAM_REPO }}
             Upstream Commit: ${{ steps.check_changes.outputs.upstream_sha }}
           files: |
-            plugin/target/UltimateShop-*.jar
+            plugin/build/libs/UltimateShop-*.jar
           draft: false
           prerelease: true
         env:

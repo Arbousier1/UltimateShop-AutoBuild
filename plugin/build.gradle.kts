@@ -1,5 +1,5 @@
 plugins {
-    id("com.github.johnrengelman.shadow")
+    id("com.gradleup.shadow")
 }
 
 dependencies {
@@ -13,7 +13,6 @@ tasks.shadowJar {
     archiveBaseName.set("UltimateShop")
     archiveVersion.set(project.version.toString())
     archiveClassifier.set("")
-    destinationDirectory.set(file("$rootDir/plugin/target"))
 
     relocate("org.bstats", "cn.superiormc.ultimateshop.bstats")
     relocate("com.zaxxer.hikari", "cn.superiormc.ultimateshop.libs.hikari")
