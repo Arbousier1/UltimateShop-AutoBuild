@@ -30,7 +30,8 @@ public class MathFunctionTest {
     public static class SigmaFunction extends AbstractFunction {
         @Override
         public EvaluationValue evaluate(Expression expression, Token functionToken,
-                                         EvaluationValue... parameterValues) {
+                                         EvaluationValue... parameterValues)
+                throws EvaluationException {
             int start = parameterValues[0].getNumberValue().intValue();
             int end = parameterValues[1].getNumberValue().intValue();
             String body = parameterValues[2].getStringValue();
