@@ -6,7 +6,7 @@ dependencies {
     compileOnly("org.geysermc.floodgate:api:2.2.2-SNAPSHOT")
     compileOnly("com.cronutils:cron-utils:9.2.0")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.14")
-    compileOnly("io.lumine:MythicLib:1.7.1")
+    compileOnly(files("lib/MythicLib-dist-1.7.1-20251205.145545-63.jar"))
     compileOnly("net.Indyuce:MMOItems-API:6.10.1-SNAPSHOT")
     compileOnly("com.github.LoneDev6:api-itemsadder:2.3.8")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
@@ -34,9 +34,11 @@ dependencies {
     compileOnly("org.json:json:20210307")
     compileOnly("cn.superiormc.mythicchanger:plugin:3.0.7")
     compileOnly("com.nexomc:nexo:1.0.0")
-    compileOnly("com.github.Zrips:Residence:master-SNAPSHOT")
+    compileOnly(files("lib/Residence5.1.6.2.jar"))
     compileOnly("com.github.GriefPrevention:GriefPrevention:16.18.2")
-    compileOnly("com.github.angeschossen:LandsAPI:7.11.10")
+    compileOnly("com.github.angeschossen:LandsAPI:7.11.10") {
+        isTransitive = false
+    }
     compileOnly("net.william278.husktowns:husktowns-bukkit:3.1")
     compileOnly("net.william278.huskclaims:huskclaims-bukkit:1.5")
     compileOnly("com.intellectualsites.plotsquared:plotsquared-core:7.4.0")
