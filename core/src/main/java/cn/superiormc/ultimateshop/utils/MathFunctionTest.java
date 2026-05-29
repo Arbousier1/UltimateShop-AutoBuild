@@ -44,7 +44,12 @@ public class MathFunctionTest {
             BigDecimal sum = BigDecimal.ZERO;
             for (int i = start; i <= end; i++) {
                 Expression sub = new Expression(body, config).with("i", BigDecimal.valueOf(i));
-                sum = sum.add(sub.evaluate().getNumberValue());
+                try {
+                    sum = sum.add(sub.evaluate().getNumberValue());
+                } catch (com.ezylang.evalex.parser.ParseException e) {
+                    throw new EvaluationException(functionToken,
+                            "SIGMA: error in body expression: " + e.getMessage());
+                }
             }
             return EvaluationValue.numberValue(sum);
         }

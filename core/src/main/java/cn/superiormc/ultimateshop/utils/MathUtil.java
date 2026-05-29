@@ -112,7 +112,12 @@ public class MathUtil {
             for (int i = start; i <= end; i++) {
                 Expression subExpr = new Expression(body, expressionConfig)
                         .with("i", BigDecimal.valueOf(i));
-                sum = sum.add(subExpr.evaluate().getNumberValue());
+                try {
+                    sum = sum.add(subExpr.evaluate().getNumberValue());
+                } catch (com.ezylang.evalex.parser.ParseException e) {
+                    throw new EvaluationException(functionToken,
+                            "SIGMA: error in body expression: " + e.getMessage());
+                }
             }
             return EvaluationValue.numberValue(sum);
         }
