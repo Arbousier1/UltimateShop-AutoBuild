@@ -15,6 +15,7 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
+import java.util.Map;
 
 public class MathUtil {
 
@@ -36,9 +37,8 @@ public class MathUtil {
         integerFormat = new DecimalFormat(integerPattern, symbols);
         decimalFormat = new DecimalFormat(decimalPattern, symbols);
 
-        expressionConfig = ExpressionConfiguration.builder()
-                .function("SIGMA", new SigmaFunction())
-                .build();
+        expressionConfig = ExpressionConfiguration.defaultConfiguration()
+                .withAdditionalFunctions(Map.entry("SIGMA", new SigmaFunction()));
     }
 
     public static double multiply(double left, double right) {
@@ -91,10 +91,11 @@ public class MathUtil {
     public static class SigmaFunction extends AbstractFunction {
 
         @Override
-        public EvaluationValue evaluate(EvaluationValue... args) {
-            int start = args[0].getNumberValue().intValue();
-            int end = args[1].getNumberValue().intValue();
-            String body = args[2].getStringValue();
+        public EvaluationValue evaluate(Expression expression, Token functionToken,
+                                         EvaluationValue... parameterValues) {
+            int start = parameterValues[0].getNumberValue().intValue();
+            int end = parameterValues[1].getNumberValue().intValue();
+            String body = parameterValues[2].getStringValue();
 
             if (start > end) {
                 return EvaluationValue.numberValue(BigDecimal.ZERO);
@@ -102,8 +103,7 @@ public class MathUtil {
 
             int count = end - start + 1;
             if (count > SIGMA_MAX_ITERATIONS) {
-                throw new EvaluationException(
-                        new Token(0, body),
+                throw new EvaluationException(functionToken,
                         "SIGMA: too many iterations (" + count + "), maximum is " + SIGMA_MAX_ITERATIONS);
             }
 
