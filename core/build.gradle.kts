@@ -60,3 +60,10 @@ dependencies {
     compileOnly("de.oliver:FancyHolograms:2.9.1")
     implementation("cn.gtemc:itembridge:1.0.25")
 }
+
+tasks.register<JavaExec>("testMath") {
+    group = "verification"
+    description = "Run EvalEx + SIGMA accuracy tests"
+    mainClass.set("cn.superiormc.ultimateshop.utils.MathFunctionTest")
+    classpath = sourceSets["main"].runtimeClasspath
+}
