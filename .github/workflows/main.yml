@@ -87,8 +87,7 @@ jobs:
           }
           echo "Downloading AdvancedEnchantments-API..."
           if ! wget -q -O core/lib/AdvancedEnchantmentsAPI.jar \
-            "https://www.spigotmc.org/resources/advancedenchantments-api.76819/download?version=532238" \
-            --user-agent="Mozilla/5.0"; then
+            "https://raw.githubusercontent.com/ManyouTeam/UltimateShop/master/core/lib/AdvancedEnchantmentsAPI.jar"; then
             echo "AdvancedEnchantments-API download skipped (using local jar)"
           else
             validate_jar core/lib/AdvancedEnchantmentsAPI.jar "AdvancedEnchantments-API"
