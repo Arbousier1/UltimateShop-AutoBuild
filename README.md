@@ -1,6 +1,6 @@
-# UltimateShop 自用 Fork
+# 🛒 UltimateShop 自用 Fork
 
-> 这是 `UltimateShop` 的自用分支，主要用于我自己的构建、验证和维护。
+> 这是 [UltimateShop](https://github.com/ManyouTeam/UltimateShop) 的自用分支，主要用于我自己的构建、验证和维护。
 
 ## 这个 Fork 做了什么
 
@@ -8,110 +8,171 @@
 - 增加了 `:core:testMath` 任务，用来在构建过程中跑 EvalEx 和自定义 `SIGMA` 的表达式验证。
 - 补充了 README 中的数学表达式说明，包含内置函数、布尔写法、占位符和自定义函数。
 - 根据文章《一种解决 Minecraft 服务器常见经济问题的新尝试（理论篇）》补充了动态收购模型参数说明。
+- 新增中国法定节假日 API 集成，通过在线 API 自动获取真实放假和调休数据，提供 `{china-holiday-beta}`、`{mu-*-auto}` 等变量。
 
-## 项目简介
+## 🔒 No Need to Worry About Custom Item Changes
 
-**UltimateShop** 是一个适用于 Spigot / Paper 的商店插件，支持商品、价格、限购、冷却、菜单、条件和占位符等功能。
+**UltimateShop** uses **NBT-based item recognition** instead of comparing entire items.
 
----
+It fully supports compatibility with most popular item plugins like **MMOItems**, **eco**, **ItemsAdder**, **Nexo**, **Oraxen**, **MythicMobs**, **CraftEngine** etc..
 
-## 自定义物品识别
+Even if an item is enchanted, renamed with an anvil, or modified by other plugins (like lore changes), UltimateShop can still recognize it correctly and allow it to be sold.
 
-UltimateShop 使用基于 **NBT** 的物品识别方式，而不是简单地比较整件物品。
+You don't need commands to give players items. UltimateShop's built-in item syntax supports all these plugins natively — just **two lines of configuration** enable buying and selling functionality.
 
-它支持和常见物品插件兼容，例如：
-
-- MMOItems
-- eco
-- ItemsAdder
-- Nexo
-- Oraxen
-- MythicMobs
-- CraftEngine
-
-即使物品被附魔、改名，或者被其它插件修改了 lore，插件通常也能继续正确识别。
+Need to tweak items from other plugins (e.g., change name, replace lore)? UltimateShop fully supports modifying items based on plugin-provided templates.
 
 ---
 
-## 菜单系统
+## 🧭 Menu System
 
-UltimateShop 提供了完全可配置的菜单系统，支持：
+UltimateShop includes a fully customizable menu system inspired by **TrMenu** slot configuration.
 
-- 自定义每个商店的布局
-- 自动检查限购，减少误点
-- 为按钮或商品设置自定义点击动作
-- 添加带动作和条件的自定义按钮
-- 商店内外都可以独立配置菜单
-- 同一份配置可用于 Java 箱子界面和 Bedrock 表单界面
-
----
-
-## 限购与冷却
-
-插件支持配置：
-
-- 全局买入限购
-- 个人买入限购
-- 全局卖出限购
-- 个人卖出限购
-- 全局买入冷却
-- 个人买入冷却
-- 全局卖出冷却
-- 个人卖出冷却
-
-重置方式包括：
-
-- 每日 / 每周 / 每月重置
-- 基于计时器的重置
-- Cron 表达式重置
-- 永不重置
-- 通过其它插件占位符自定义重置
-
-限购和冷却都支持数学表达式和 PlaceholderAPI 变量。
+- Customize item layout for each shop.
+- Support auto-check limits, prevent misclicks.
+- Set custom click actions for buttons or products.
+- Add custom buttons with actions and conditions.
+- Fully configurable menus both inside and outside shops.
+- One config file working both for Java chest UI and Bedrock form UI. (PREMIUM)
+- Support auto update menu buttons and titles. (Update title require PREMIUM)
 
 ---
 
-## 商品与价格
+## ⏳ Item Limits and Cooldowns
 
-UltimateShop 采用商品和价格的多对多关系：
+UltimateShop allows you to configure:
 
-- 一个商品可以对应多个价格方案
-- 一个价格规则也可以作用到多个商品
+- Global and personal limits for **buy** and **sell** (4 attributes);
+- Global and personal cooldowns for **buy** and **sell** (4 attributes).
 
-商品和价格都可以使用物品或货币来定义。支持：
+That's a total of **8 configurable attributes**, usually only found in premium shop plugins!
 
-- 多种经济插件
-- 单个价格设置多个应用时间、规则和条件
-- 数学运算和 PlaceholderAPI 变量
-- 季节性或按时间变化的价格
-- 折扣和随机商店
+Reset modes include:
 
----
+- Daily/weekly/monthly reset;
+- Timer-based reset;
+- Cron expression reset;
+- Permanent (no reset);
+- Custom reset via placeholders from other plugins. Support recalculating the reset time with each purchase or selling, or saving the time until the next reset time arrives.
 
-## 物品与经济格式
+Personal limits can be conditional — for example, VIPs can have higher limits.
 
-插件支持在以下位置使用物品和经济格式：
+Both personal and global limits support math expressions and PlaceholderAPI variables.
 
-- 价格和商品
-- 菜单和展示物品
+You can even create a **real-stock system**, where items can only be bought after others sell them, keeping the economy balanced.
 
-经济格式支持：
-
-- Vanilla XP 和 XP 等级
-- 多种第三方经济插件
+Cooldowns ensure players must wait a period after each buy or sell before repeating.
 
 ---
 
-## 占位符
+## 💰 Highly Customizable Prices and Products
 
-插件很多地方都能直接使用占位符，包括：
+**UltimateShop** uses a **many-to-many relationship** between products and prices. This means:
 
-- 数学占位符
-- Cron 占位符
-- 随机占位符
-- 条件占位符
-- 语言占位符
-- 比较占位符
+- A **single product** can be bought or sold using **multiple different price options**. For example, one item could be purchased with Vault currency, PlayerPoints, or by trading another material.
+- At the same time, a **single price rule** can apply to **multiple different products**. So you don't need to duplicate price settings for every item — one price definition can serve all products that link to it.
+
+Prices and products can both be defined using **items or currency**.
+
+Supports:
+
+- 10+ economy plugins;
+- Multiple apply times, rules and conditions per single price;
+- Math operations and PlaceholderAPI variables;
+- Seasonal or time-based pricing;
+- Discounts and random shops.
+
+With this flexibility, you can:
+
+- Set VIP discounts;
+- Create daily limited offers;
+- Product cheaper after buy 10 times;
+- Rotate daily random shops;
+- Implement a **dynamic market** where frequent purchases increase prices, and frequent sales lower them.
+
+You can even exchange money for points or create custom virtual currencies — no need for extra plugins.
+
+Support:
+
+- Use item or economy as products or prices.
+- Use placeholder to check price and use actions to take money.
+- Use contains lore or name etc. check item and take them.
+
+---
+
+## 📦 Item and Economy Format
+
+UltimateShop supports **item and economy format** in:
+
+- Prices and products;
+- Menus and display items.
+
+Powered by the **ManyouItems**, you can:
+
+- Sell detailed vanilla items (e.g., custom cloaks, mob spawners);
+- Support partial Mod items;
+- Sell custom tool, custom armor, custom food, etc.;
+- Almost all vanilla item component can be easily configure by using ItemFormat.
+- Retrieve items directly from other plugins with just two lines of config.
+
+Economy format supports:
+
+- Vanilla XP and XP levels;
+- 10+ third-party economy plugins.
+
+---
+
+## 📄 Powerful Placeholders
+
+Support use those placeholders almost everywhere you can!
+
+Including:
+
+- Math Placeholder
+- Cron Placeholder
+- Random Placeholder
+- Conditional Placeholder
+- Lang Placeholder
+- Compare Placeholder etc.
+
+---
+
+## ⚙️ Actions and Conditions
+
+UltimateShop allows actions and conditions to be triggered by:
+
+- Buying or selling items;
+- Fail actions;
+- Clicking buttons;
+- Opening/Closing menus;
+- and much more!
+
+**Available actions:**
+
+- Run commands;
+- Spawn entities;
+- Play sounds;
+- Teleport players;
+- and 10+ much more!
+
+**Available conditions:**
+
+- PlaceholderAPI;
+- World, biome, or permission checks.
+
+---
+
+## 🧱 Advanced Features (Some PREMIUM Only)
+
+- **Fully MiniMessage and Legacy Color Parser support**.
+- **Common Message/Action Bar/Title/Boss Bar/Sound** support in language message!
+- **Per Player Language**: Display the corresponding custom text content based on the player's client language.
+- **Buy More Menu**: Choose quantity, support buy only, sell only and common buy more menu.
+- **Quick-Sell Menu**: Drag and drop items for instant auto-sell.
+- **Plugin Enchant Support**: Add plugin enchantments like AdvancedEnchantments via item syntax.
+- **Sell Wand**: Quickly sell items inside containers by clicking them.
+- **Sell Chest**: Auto selling items inside.
+- **Bedrock Menu Support**: Detect Floodgate players and auto-convert GUI to Bedrock FormUI.
 
 ---
 
@@ -338,7 +399,7 @@ amount: 'SIGMA(1, 10, "i * i")'
 
 结论：插件已经补充了文章公式常用的变量入口，可以直接在商品、价格和限购的 `amount` 表达式里使用。玩家活跃时长 `P`、额度相关参数 `Q/Q_B/T`、当前日期 `t`、经济环境指数 `epsilon`、假期环境参数 `alpha/mu/sigma/beta`、特别物价指数 `iota`、随机扰动 `noise`、衰减系数 `lambda`、时间恢复参数 `delta/tau`、周期上限 `nu` 都有对应变量。
 
-仍然不能完全自动还原文章里的“多历史周期序列” `n_i(0)` / `n_i(t_i)`，因为插件原本只保存当前周期次数和累计次数，不保存每一个历史周期的序列。为了解决常用场景，插件额外提供了 `{sell-decayed-player}`、`{sell-total-decayed-player}`、`{sell-decayed-server}`、`{sell-total-decayed-server}` 这类近似衰减后的售出量变量。
+仍然不能完全自动还原文章里的"多历史周期序列" `n_i(0)` / `n_i(t_i)`，因为插件原本只保存当前周期次数和累计次数，不保存每一个历史周期的序列。为了解决常用场景，插件额外提供了 `{sell-decayed-player}`、`{sell-total-decayed-player}`、`{sell-decayed-server}`、`{sell-total-decayed-server}` 这类近似衰减后的售出量变量。
 
 文章里的累计收益 `M(n)` 不是 UltimateShop 原有缓存字段，当前没有在插件内新增交易金额历史表。实际收购价格通常只需要单价公式 `p(n)`；如果要展示或限制累计收益，需要用 PlaceholderAPI、数据库统计或后续专门的交易金额缓存来提供。
 
@@ -439,6 +500,16 @@ placeholder:
       decay-delta: 1
       decay-tau-days: 7
 ```
+
+这些配置值也可以写 PlaceholderAPI，例如：
+
+```yaml
+environment-index: "%custom_environment_index%"
+special-price-index: "%custom_special_price_index%"
+noise: "{random_daily}"
+```
+
+`p_0` 通常是每个商品自己的基础价格，最直接的写法是在商品 `amount` 里写数字，例如 `100 * E ^ ...`。如果你确实需要统一从配置读取基础价，也可以使用 `{p_0}`。
 
 ### 中国法定节假日 API 集成
 
@@ -774,50 +845,8 @@ amount: "ROUND({epsilon} * 100 * E ^ (-{lambda} * {sell-total-player}), 2)"
 
 ---
 
-## 动作与条件
+### ❤️ UltimateShop — The Most Flexible Economy Shop System
 
-UltimateShop 支持在以下场景触发动作和条件：
+Consider respect my work and buy the plugin here, you can get free support, submit suggestion service. [Click to buy](https://www.spigotmc.org/resources/ultimateshop-premium-menu-dynamic-price-limits-apply-settings-sell-all-and-more-1-17-1-20.113069/)
 
-- 买入或卖出
-- 失败动作
-- 点击按钮
-- 打开 / 关闭菜单
-
-可用动作包括：
-
-- 执行命令
-- 生成实体
-- 播放音效
-- 传送玩家
-
-可用条件包括：
-
-- PlaceholderAPI
-- 世界
-- 生物群系
-- 权限检查
-
----
-
-## 高级功能
-
-以下内容中有些是 PREMIUM 才能用的：
-
-- MiniMessage 和 Legacy 颜色解析
-- 语言消息支持 Action Bar / Title / Boss Bar / Sound
-- 按玩家客户端语言显示对应文本
-- 买更多菜单
-- 快速卖出菜单
-- 插件附魔支持
-- 卖棒
-- 自动卖箱
-- 基岩菜单支持
-
----
-
-## 购买与下载
-
-如果你喜欢这个项目，也可以去原作者页面支持一下：
-
-- [购买 PREMIUM](https://www.spigotmc.org/resources/ultimateshop-premium-menu-dynamic-price-limits-apply-settings-sell-all-and-more-1-17-1-20.113069/)
-- [下载免费版](https://www.spigotmc.org/resources/ultimateshop-menus-limits-apply-settings-10-directly-hook-and-more-1-17-1-20.110601/)
+You can also get free version here. [Click to download](https://www.spigotmc.org/resources/ultimateshop-menus-limits-apply-settings-10-directly-hook-and-more-1-17-1-20.110601/)
