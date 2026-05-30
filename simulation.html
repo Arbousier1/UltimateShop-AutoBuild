@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UltimateShop 经济模型 · 长期价格曲线模拟</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0f1923; color: #e0e0e0; font-family: -apple-system, 'Segoe UI', sans-serif; padding: 24px; }
+h1 { color: #00e5ff; font-size: 26px; margin-bottom: 6px; }
+.sub { color: #8899aa; font-size: 14px; margin-bottom: 28px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1500px; margin: 0 auto; }
+.card { background: #1a2634; border-radius: 12px; padding: 20px; border: 1px solid #2a3a4a; }
+.card h2 { color: #ffd700; font-size: 15px; margin-bottom: 10px; }
+.card h2 .tag { color: #667; font-weight: normal; font-size: 11px; }
+.card-full { grid-column: 1 / -1; }
+canvas { width: 100% !important; height: 300px !important; }
+.controls { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.controls label { font-size: 13px; color: #aabbcc; display: flex; align-items: center; gap: 6px; }
+.controls input { width: 56px; background: #0f1923; border: 1px solid #2a3a4a; color: #e0e0e0; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+.controls input:focus { outline: none; border-color: #00e5ff; }
+.controls button { background: #00e5ff; color: #0f1923; border: none; padding: 6px 18px; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: bold; }
+.controls button:hover { background: #33eaff; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 11px; color: #8899aa; }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat { background: #0f1923; border-radius: 8px; padding: 10px; text-align: center; }
+.stat .val { font-size: 18px; font-weight: bold; color: #00e5ff; }
+.stat .lbl { font-size: 10px; color: #8899aa; margin-top: 2px; }
+.stat .val.gold { color: #ffd700; }
+.stat .val.green { color: #4caf50; }
+.stat .val.red { color: #f44336; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+
+<h1>📈 长期价格曲线模拟</h1>
+<p class="sub">横轴 = 时间 · 纵轴 = 价格 · 基于文章《一种解决Minecraft服务器常见经济问题的新尝试》公式，与 DecayCalculator.java 逻辑一致</p>
+
+<div class="stats" id="statsBar"></div>
+
+<div class="controls">
+  <label>λ 衰减系数 <input type="number" id="slLambda" value="0.05" step="0.005" min="0.005" max="0.5"></label>
+  <label>δ 恢复速度 <input type="number" id="slDelta" value="1.0" step="0.1" min="0.1" max="5"></label>
+  <label>τ 恢复中点 <input type="number" id="slTau" value="7" step="1" min="1" max="30"></label>
+  <label>周交易量 <input type="number" id="slTrades" value="60" step="5" min="5" max="500"></label>
+  <label>p₀ <input type="number" id="slP0" value="100" step="10" min="10" max="1000"></label>
+  <button onclick="rebuildAll()">⟳ 刷新</button>
+</div>
+
+<div class="grid" id="chartGrid"></div>
+
+<script>
+// ============================================================
+// 公式 (与 DecayCalculator.java 一致)
+// ============================================================
+
+function holidayImpact(alpha, mu, sigma, day) {
+  if (sigma <= 0 || alpha <= 0) return 0;
+  const sq = sigma * sigma; if (sq === 0) return 0;
+  const exp = -Math.pow(day - mu, 6) / (2 * sq);
+  if (!isFinite(exp)) return 0;
+  const r = alpha * Math.exp(exp);
+  return (isNaN(r) || !isFinite(r)) ? 0 : r;
+}
+
+function eps(day, aW, mW, sW, aS, mS, sS, aN, mN, sN, beta, noise) {
+  return (1 - holidayImpact(aW, mW, sW, day) - holidayImpact(aS, mS, sS, day) - holidayImpact(aN, mN, sN, day)) * beta + noise;
+}
+
+function pn(eps, iota, p0, lam, n) { return Math.round(eps * iota * p0 * Math.exp(-lam * n) * 100) / 100; }
+function mn(lam, n) { return (lam <= 0 || n <= 0) ? 0 : (1 - Math.exp(-lam * n)) / lam; }
+function decay1(n0, ed, delta, tau) { return n0 <= 0 ? 0 : Math.floor(n0 / (Math.exp(delta * (Math.max(0,ed) - tau)) + 1)); }
+function decaySum(periods, cur, curEd, delta, tau) {
+  let t = 0; for (const p of periods) t += decay1(p.s, p.e, delta, tau);
+  if (cur > 0) t += decay1(cur, curEd, delta, tau); return t;
+}
+
+// === 参数 ===
+const P = { aW:0.15, mW:46, sW:65536, aS:0.15, mS:213, sS:65536, aN:0.075, mN:274, sN:33.1776 };
+
+function getBeta(d) {
+  const major = (d>=15&&d<=21)||(d>=274&&d<=280);
+  if (major) return 1.0;
+  const minor = (d>=1&&d<=3)||(d>=100&&d<=102)||(d>=125&&d<=127)||(d>=256&&d<=258)||(d>=289&&d<=291);
+  if (minor) return 0.95;
+  return (d%7===0||d%7===6) ? 0.98 : 1.0;
+}
+
+function dayLabel(d) {
+  const m = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  return m[Math.floor((d-1)/30.4)];
+}
+
+// ============================================================
+// 场景 1: 全年 ε(t) → 价格 (固定交易量)
+// ============================================================
+function scene1(p0, lam) {
+  const pts = [];
+  for (let d = 1; d <= 365; d++) {
+    const b = getBeta(d);
+    const e = eps(d, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, 0);
+    const baseN = 60 + Math.sin(d/30)*20;
+    pts.push({ x:d, y:pn(e,1,p0,lam,baseN) });
+  }
+  return pts;
+}
+
+// 场景 1b: 无假期参考
+function scene1b(p0, lam) {
+  const pts = [];
+  for (let d = 1; d <= 365; d++) {
+    const e = eps(d, 0,0,0, 0,0,0, 0,0,0, 1, 0);
+    const baseN = 60 + Math.sin(d/30)*20;
+    pts.push({ x:d, y:pn(e,1,p0,lam,baseN) });
+  }
+  return pts;
+}
+
+// ============================================================
+// 场景 2: 不同 λ — 同交易模式下的价格轨迹
+// ============================================================
+function scene2(p0, lambdas, delta, tau, weeklyTrades) {
+  const days = 120;
+  return lambdas.map(lam => {
+    const pts = []; let history = [], cur = 0, wk = 0;
+    for (let d = 1; d <= days; d++) {
+      if ((d-1)%7===0 && d>1) { history.push({s:cur,e:0}); cur=0; wk=d-1; }
+      for (const h of history) h.e++;
+      const b = getBeta(d);
+      const e = eps(d, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, 0);
+      const nd = decaySum(history, cur, d-wk-1, delta, tau);
+      cur += Math.round(weeklyTrades/7);
+      if (d%2===0||d===1) pts.push({ x:d, y:pn(e,1,p0,lam,nd) });
+    }
+    return { label:`λ=${lam}`, pts };
+  });
+}
+
+// ============================================================
+// 场景 3: 不同交易频率
+// ============================================================
+function scene3(p0, lam, delta, tau) {
+  const rates = [
+    { name:'高频玩家 150/周', r:150, c:'#ff6b6b' },
+    { name:'活跃玩家 60/周',  r:60,  c:'#ffd700' },
+    { name:'普通玩家 20/周',  r:20,  c:'#4ecdc4' },
+    { name:'休闲玩家 5/周',   r:5,   c:'#45b7d1' },
+  ];
+  const days = 120;
+  return rates.map(s => {
+    const pts = []; let history=[], cur=0, wk=0;
+    for (let d=1; d<=days; d++) {
+      if ((d-1)%7===0 && d>1) { history.push({s:cur,e:0}); cur=0; wk=d-1; }
+      for (const h of history) h.e++;
+      const b = getBeta(d);
+      const e = eps(d, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, 0);
+      const nd = decaySum(history, cur, d-wk-1, delta, tau);
+      cur += s.r/7;
+      if (d%2===0||d===1) pts.push({ x:d, y:pn(e,1,p0,lam,nd) });
+    }
+    return { label:s.name, pts, color:s.c };
+  });
+}
+
+// ============================================================
+// 场景 4: 不同 δ 恢复速度
+// ============================================================
+function scene4(p0, lam, tau, weeklyTrades) {
+  const deltas = [0.3, 0.5, 1.0, 2.0, 5.0];
+  const days = 90;
+  return deltas.map(dl => {
+    const pts = []; let history=[], cur=0, wk=0;
+    for (let d=1; d<=days; d++) {
+      if ((d-1)%7===0 && d>1) { history.push({s:cur,e:0}); cur=0; wk=d-1; }
+      for (const h of history) h.e++;
+      const b = getBeta(d);
+      const e = eps(d, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, 0);
+      const nd = decaySum(history, cur, d-wk-1, dl, tau);
+      cur += Math.round(weeklyTrades/7);
+      if (d%2===0||d===1) pts.push({ x:d, y:pn(e,1,p0,lam,nd) });
+    }
+    return { label:`δ=${dl}`, pts };
+  });
+}
+
+// ============================================================
+// 场景 5: 365天全模拟 (4轴)
+// ============================================================
+function scene5(p0, lam, delta, tau, weeklyTrades) {
+  let history=[], cur=0, wk=0;
+  const pr=[], nd=[], ep=[], mnv=[], tr=[];
+  for (let d=1; d<=365; d++) {
+    if ((d-1)%7===0 && d>1) { history.push({s:cur,e:0}); cur=0; wk=d-1; }
+    for (const h of history) h.e++;
+    const b = getBeta(d);
+    const e = eps(d, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, 0);
+    const ndv = decaySum(history, cur, d-wk-1, delta, tau);
+    const price = pn(e,1,p0,lam,ndv);
+    const trades = Math.max(0, Math.round(weeklyTrades/7 + (Math.random()-0.5)*weeklyTrades/7*0.6));
+    cur += trades;
+    if (d%2===0||d===1) {
+      pr.push({x:d, y:price});
+      nd.push({x:d, y:ndv});
+      ep.push({x:d, y:e});
+      mnv.push({x:d, y:mn(lam, ndv+cur)});
+      tr.push({x:d, y:trades});
+    }
+  }
+  const prices = pr.map(p=>p.y);
+  return {
+    price:pr, nDecayed:nd, epsilon:ep, m:mnv, trades:tr,
+    stats:{ totalTrades:tr.reduce((s,p)=>s+p.y,0), avgPrice:prices.reduce((s,p)=>s+p,0)/prices.length, minPrice:Math.min(...prices), totalRev:pr.reduce((s,p)=>s+p.y*0,0) }
+  };
+}
+
+// ============================================================
+// 场景 6: 单周期 7天内价格变化
+// ============================================================
+function scene6(p0, lam, delta, tau, weeklyTrades) {
+  const pts = []; let cur = 0;
+  for (let d=0; d<7; d++) {
+    const b = getBeta(d+200);
+    const e = eps(d+200, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, 0);
+    const nd = decay1(cur, d, delta, tau);
+    pts.push({ x:d, y:pn(e,1,p0,lam,nd) });
+    cur += Math.round(weeklyTrades/7);
+  }
+  return pts;
+}
+
+// ============================================================
+// 场景 7: Monte Carlo (全年价格分布)
+// ============================================================
+function scene7(p0, lam) {
+  const pts = [];
+  for (let d=1; d<=365; d++) {
+    for (let t=0; t<150; t++) {
+      const b = getBeta(d);
+      const noise = (Math.random()-0.5)*0.1;
+      const e = eps(d, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, noise);
+      const n = Math.max(0, 40 + Math.sin(d/25)*20 + (Math.random()-0.5)*25);
+      if (t%3===0) pts.push({ x:d, y:pn(e,1,p0,lam,n) });
+    }
+  }
+  const trend = [];
+  for (let d=1; d<=365; d++) {
+    const b = getBeta(d);
+    const e = eps(d, P.aW,P.mW,P.sW, P.aS,P.mS,P.sS, P.aN,P.mN,P.sN, b, 0);
+    trend.push({ x:d, y:pn(e,1,p0,lam, 40+Math.sin(d/25)*20) });
+  }
+  return { scatter:pts, trend };
+}
+
+// ============================================================
+// 渲染
+// ============================================================
+
+const COLORS = ['#ff6b6b','#ffd700','#4ecdc4','#45b7d1','#a66cff','#ff9ff3'];
+
+function makeChart(canvasId, datasets, extraOpts) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+      plugins: {
+        legend: { labels: { color:'#aabbcc', font:{size:11}, usePointStyle:true, pointStyle:'line' } },
+        tooltip: { backgroundColor:'#1a2634', titleColor:'#00e5ff', bodyColor:'#e0e0e0', borderColor:'#2a3a4a', borderWidth:1, cornerRadius:6,
+          callbacks: { label: ctx => `第${ctx.raw.x}天: ${ctx.raw.y}` } },
+      },
+      scales: {
+        x: {
+          type:'linear', grid:{color:'#1a2a3a'}, ticks:{color:'#8899aa', font:{size:10}, callback:v=>dayLabel(v)},
+          title:{display:true, text:'时间 （天）', color:'#8899aa', font:{size:11}},
+          min: extraOpts?.xMin, max: extraOpts?.xMax,
+        },
+        y: {
+          grid:{color:'#1a2a3a'}, ticks:{color:'#8899aa', font:{size:10}},
+          title:{display:true, text:'收购价格 p(n) （DC币）', color:'#8899aa', font:{size:11}},
+          beginAtZero: true,
+          ...(extraOpts?.yScale || {}),
+        },
+        ...(extraOpts?.extraScales || {}),
+      },
+      elements: { point: { radius: extraOpts?.pointRadius ?? 1.5 } },
+    }
+  });
+}
+
+function renderCharts() {
+  const grid = document.getElementById('chartGrid');
+  grid.innerHTML = '';
+
+  const lam = +document.getElementById('slLambda').value;
+  const delta = +document.getElementById('slDelta').value;
+  const tau = +document.getElementById('slTau').value;
+  const trades = +document.getElementById('slTrades').value;
+  const p0 = +document.getElementById('slP0').value;
+
+  const MONTH_TICKS = [1,32,60,91,121,152,182,213,244,274,305,335];
+
+  // === 图1: ε(t) → 全年价格 ===
+  grid.innerHTML += `<div class="card card-full"><h2>① ε(t) 经济环境指数对价格的影响 · 全年 <span class="tag">横轴=时间(天) 纵轴=价格 蓝线=无假期参考</span></h2><canvas id="c1"></canvas><div class="legend"><span><span class="dot" style="background:#ff6b6b"></span>含假期 ε(t) 价格</span><span><span class="dot" style="background:#4ecdc4;border:1px dashed #4ecdc4"></span>无假期参考价格</span></div></div>`;
+  const s1 = scene1(p0, lam), s1b = scene1b(p0, lam);
+  makeChart('c1', [
+    { label:'含假期价格', data:s1, borderColor:'#ff6b6b', backgroundColor:'rgba(255,107,107,0.06)', fill:true, showLine:true, borderWidth:2, pointRadius:0, tension:0.4 },
+    { label:'无假期参考', data:s1b, borderColor:'#4ecdc4', showLine:true, borderWidth:1.5, pointRadius:0, tension:0.4, borderDash:[5,5] },
+  ], { xMin:1, xMax:365, pointRadius:0, extraScales:{ x:{ ticks:{ callback:v=>MONTH_TICKS.includes(v)?['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][MONTH_TICKS.indexOf(v)]:'', maxTicksLimit:12 } } } });
+
+  // === 图2: 不同 λ ===
+  grid.innerHTML += `<div class="card"><h2>② 不同 λ 衰减系数 · 价格轨迹 <span class="tag">120天 · 同交易模式</span></h2><canvas id="c2"></canvas></div>`;
+  const s2 = scene2(p0, [0.01, 0.03, lam, 0.1, 0.2], delta, tau, trades);
+  makeChart('c2', s2.map((ds,i)=>({ label:ds.label, data:ds.pts, borderColor:COLORS[i], showLine:true, borderWidth:i===2?3:1.5, pointRadius:0, tension:0.3 })), { xMin:1, xMax:120 });
+
+  // === 图3: 不同频率 ===
+  grid.innerHTML += `<div class="card"><h2>③ 不同交易频率 · 价格对比 <span class="tag">120天 · 每周重置</span></h2><canvas id="c3"></canvas></div>`;
+  const s3 = scene3(p0, lam, delta, tau);
+  makeChart('c3', s3.map(s=>({ label:s.label, data:s.pts, borderColor:s.color, showLine:true, borderWidth:2, pointRadius:0, tension:0.3 })), { xMin:1, xMax:120 });
+
+  // === 图4: 不同 δ ===
+  grid.innerHTML += `<div class="card"><h2>④ 不同 δ 恢复速度 · 价格影响 <span class="tag">90天 · τ=${tau}天 · 周${trades}次</span></h2><canvas id="c4"></canvas></div>`;
+  const s4 = scene4(p0, lam, tau, trades);
+  makeChart('c4', s4.map((ds,i)=>({ label:ds.label, data:ds.pts, borderColor:COLORS[i], showLine:true, borderWidth:i===2?3:1.5, pointRadius:0, tension:0.3 })), { xMin:1, xMax:90 });
+
+  // === 图5: 365天全模拟 ===
+  grid.innerHTML += `<div class="card card-full"><h2>⑤ 365天完整模拟 <span class="tag">每周重置 · 随机交易 · λ=${lam} · δ=${delta} · p₀=${p0}</span></h2><canvas id="c5"></canvas><div class="legend"><span><span class="dot" style="background:#ff6b6b"></span>p(n) 收购价格</span><span><span class="dot" style="background:#ffd700"></span>ε(t) 环境指数(右轴)</span><span><span class="dot" style="background:#4ecdc4"></span>有效售出量 n(t)(右轴)</span><span><span class="dot" style="background:#a66cff"></span>累计收益 M(n)(右轴)</span></div></div>`;
+  const s5 = scene5(p0, lam, delta, tau, trades);
+  makeChart('c5', [
+    { label:'p(n) 价格', data:s5.price, borderColor:'#ff6b6b', showLine:true, borderWidth:2.5, pointRadius:0.5, tension:0.3, yAxisID:'y' },
+    { label:'ε(t) 环境指数', data:s5.epsilon, borderColor:'#ffd700', showLine:true, borderWidth:1, pointRadius:0, tension:0.4, yAxisID:'y2', borderDash:[3,3] },
+    { label:'M(n) 累计收益', data:s5.m, borderColor:'#a66cff', showLine:true, borderWidth:1.5, pointRadius:0, tension:0.3, yAxisID:'y3' },
+    { label:'n(t) 有效售出量', data:s5.nDecayed, borderColor:'#4ecdc4', showLine:true, borderWidth:1, pointRadius:0, tension:0.4, yAxisID:'y4', borderDash:[2,2] },
+  ], {
+    pointRadius:0, xMin:1, xMax:365, yZero:false,
+    extraScales: {
+      y2: { type:'linear', position:'right', grid:{display:false}, ticks:{color:'#ffd700', font:{size:9}}, min:0.7, max:1.05, title:{display:true, text:'ε(t)', color:'#ffd700', font:{size:10}} },
+      y3: { type:'linear', position:'right', grid:{display:false}, ticks:{color:'#a66cff', font:{size:9}}, title:{display:true, text:'M(n)', color:'#a66cff', font:{size:10}} },
+      y4: { type:'linear', position:'right', grid:{display:false}, ticks:{color:'#4ecdc4', font:{size:9}}, title:{display:true, text:'n(t)', color:'#4ecdc4', font:{size:10}} },
+    }
+  });
+
+  // === 图6: 单周期7天 ===
+  grid.innerHTML += `<div class="card"><h2>⑥ 单周期内价格变化 <span class="tag">7天 · 每周重置后价格逐渐恢复</span></h2><canvas id="c6"></canvas></div>`;
+  const s6 = scene6(p0, lam, delta, tau, trades);
+  makeChart('c6', [
+    { label:'单周期价格', data:s6, borderColor:'#ffd700', backgroundColor:'rgba(255,215,0,0.1)', fill:true, showLine:true, borderWidth:3, pointRadius:3, tension:0.3 },
+  ], { xMin:0, xMax:6.5, pointRadius:3, yZero:true, extraScales:{ x:{ ticks:{ stepSize:1, callback:v=>`第${v}天` } } } });
+
+  // === 图7: Monte Carlo ===
+  grid.innerHTML += `<div class="card"><h2>⑦ Monte Carlo 价格分布 <span class="tag">365天 × 150次/天 · 含随机噪声</span></h2><canvas id="c7"></canvas></div>`;
+  const s7 = scene7(p0, lam);
+  makeChart('c7', [
+    { label:'模拟价格分布', data:s7.scatter, backgroundColor:'rgba(255,107,107,0.08)', pointRadius:1.2 },
+    { label:'中央趋势线', data:s7.trend, borderColor:'#ff6b6b', showLine:true, borderWidth:2, pointRadius:0, tension:0.4 },
+  ], { xMin:1, xMax:365, pointRadius:1.2, extraScales:{ x:{ ticks:{ callback:v=>MONTH_TICKS.includes(v)?['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][MONTH_TICKS.indexOf(v)]:'', maxTicksLimit:12 } } } });
+
+  // Stats
+  const allPrices = s5.price.map(p=>p.y);
+  const stats = {
+    avgPrice: Math.round(allPrices.reduce((s,p)=>s+p,0)/allPrices.length*100)/100,
+    minPrice: Math.round(Math.min(...allPrices)*100)/100,
+    maxPrice: Math.round(Math.max(...allPrices)*100)/100,
+    finalPrice: Math.round(allPrices[allPrices.length-1]*100)/100,
+    volatility: Math.round(allPrices.reduce((s,p)=>s+Math.abs(p-allPrices.reduce((a,b)=>a+b,0)/allPrices.length),0)/allPrices.length*100)/100,
+    totalTrades: Math.round(s5.stats.totalTrades),
+  };
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><div class="val">${stats.totalTrades.toLocaleString()}</div><div class="lbl">全年交易次数</div></div>
+    <div class="stat"><div class="val gold">${stats.avgPrice}</div><div class="lbl">平均价格</div></div>
+    <div class="stat"><div class="val green">${stats.maxPrice}</div><div class="lbl">最高价格</div></div>
+    <div class="stat"><div class="val red">${stats.minPrice}</div><div class="lbl">最低价格</div></div>
+    <div class="stat"><div class="val" style="color:#4ecdc4">${stats.finalPrice}</div><div class="lbl">年末价格</div></div>
+    <div class="stat"><div class="val" style="color:#a66cff">${stats.volatility}</div><div class="lbl">平均波动幅度</div></div>
+  `;
+}
+
+function rebuildAll() { renderCharts(); }
+window.addEventListener('DOMContentLoaded', rebuildAll);
+</script>
+</body>
+</html>
