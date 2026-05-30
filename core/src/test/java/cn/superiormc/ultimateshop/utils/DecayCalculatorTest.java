@@ -616,25 +616,22 @@ public class DecayCalculatorTest {
     static void testPnEdgeCases() {
         System.out.println("\n--- p(n) edge cases ---");
         double pn = DecayCalculator.computePn(0, 1, 100, 0.1, 0);
-        check("epsilon=0 => p(n)=0", pn, 0.0, 0.001);
+        check("epsilon=0 => p(n)=0.01 (floor)", pn, 0.01, 0.001);
 
         pn = DecayCalculator.computePn(1, 0, 100, 0.1, 0);
-        check("iota=0 => p(n)=0", pn, 0.0, 0.001);
+        check("iota=0 => p(n)=0.01 (floor)", pn, 0.01, 0.001);
 
         pn = DecayCalculator.computePn(1, 1, 0, 0.1, 0);
-        check("p0=0 => p(n)=0", pn, 0.0, 0.001);
+        check("p0=0 => p(n)=0.01 (floor)", pn, 0.01, 0.001);
 
         pn = DecayCalculator.computePn(1, 1, 100, 0, 10);
         check("lambda=0 => p(n)=epsilon*iota*p0", pn, 100.0, 0.001);
 
         pn = DecayCalculator.computePn(-1, 1, 100, 0.1, 0);
-        checkBool("Negative epsilon => p(n) < 0", pn < 0);
-        checkBool("Negative epsilon => finite", Double.isFinite(pn));
+        check("Negative epsilon => p(n)=0.01 (floor)", pn, 0.01, 0.001);
 
         pn = DecayCalculator.computePn(1, 1, 100, 0.1, 1000000);
-        checkBool("Very large n, p(n) >= 0", pn >= 0);
-        checkBool("Very large n, p(n) finite", Double.isFinite(pn));
-        checkBool("Very large n, p(n) very small", pn < 1.0);
+        check("Very large n => p(n)=0.01 (floor)", pn, 0.01, 0.001);
     }
 
     static void testPnMonotonicity() {

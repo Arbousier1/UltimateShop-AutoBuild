@@ -71,7 +71,7 @@ function eps(day, aW, mW, sW, aS, mS, sS, aN, mN, sN, beta, noise) {
   return (1 - holidayImpact(aW, mW, sW, day) - holidayImpact(aS, mS, sS, day) - holidayImpact(aN, mN, sN, day)) * beta + noise;
 }
 
-function pn(eps, iota, p0, lam, n) { return Math.round(eps * iota * p0 * Math.exp(-lam * n) * 100) / 100; }
+function pn(eps, iota, p0, lam, n) { return Math.max(Math.round(eps * iota * p0 * Math.exp(-lam * n) * 100) / 100, 0.01); }
 function mn(lam, n) { return (lam <= 0 || n <= 0) ? 0 : (1 - Math.exp(-lam * n)) / lam; }
 function decay1(n0, ed, delta, tau) { return n0 <= 0 ? 0 : Math.floor(n0 / (Math.exp(delta * (Math.max(0,ed) - tau)) + 1)); }
 function decaySum(periods, cur, curEd, delta, tau) {

@@ -93,7 +93,8 @@ public class DecayCalculator {
 
     public static double computePn(double epsilon, double iota, double p0, double lambda, double n) {
         double raw = epsilon * iota * p0 * Math.exp(-lambda * n);
-        return Math.round(raw * 100.0) / 100.0;
+        double rounded = Math.round(raw * 100.0) / 100.0;
+        return Math.max(rounded, 0.01);
     }
 
     public static List<PeriodRecord> trimHistory(List<PeriodRecord> history, int maxSize) {

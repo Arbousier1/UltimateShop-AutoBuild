@@ -731,7 +731,7 @@ sell-limits:
 文章中的核心单价模型可以转成 EvalEx 写法（插件内置已做 `round{·, 2}` 处理）：
 
 ```text
-ROUND(epsilon * iota * p_0 * E ^ (-lambda * n), 2)
+ROUND(MAX(0.01, epsilon * iota * p_0 * E ^ (-lambda * n)), 2)
 ```
 
 如果直接使用 UltimateShop 的玩家历史卖出总量，可以写成：

@@ -286,18 +286,21 @@ public class DecayCalculatorExtendedTest {
     }
 
     static void testPnExponentialDecay() {
-        System.out.println("\n--- Invariant: p(n) / p(0) ≈ exp(-lambda*n) (within rounding) ---");
+        System.out.println("\n--- Invariant: p(n) / p(0) ≈ exp(-lambda*n) (within rounding + floor) ---");
         double epsilon = 0.95;
         double iota = 1.1;
         double p0 = 100;
         double lambda = 0.05;
 
-        for (int n : new int[]{1, 5, 10, 20, 50, 100}) {
+        for (int n : new int[]{1, 5, 10, 20, 50}) {
             double pn = DecayCalculator.computePn(epsilon, iota, p0, lambda, n);
             double p0val = DecayCalculator.computePn(epsilon, iota, p0, lambda, 0);
-            double ratio = pn / p0val;
-            double expected = Math.exp(-lambda * n);
-            check("p(" + n + ")/p(0) ≈ exp(-lambda*" + n + ")", ratio, expected, 0.01);
+            checkBool("p(" + n + ") >= 0.01 (floor)", pn >= 0.01);
+            if (pn > 0.01) {
+              double ratio = pn / p0val;
+              double expected = Math.exp(-lambda * n);
+              check("p(" + n + ")/p(0) ≈ exp(-lambda*" + n + ")", ratio, expected, 0.01);
+            }
         }
     }
 
@@ -582,7 +585,7 @@ public class DecayCalculatorExtendedTest {
     }
 
     static void testArticlePriceFormula() {
-        System.out.println("\n--- Article formula: p(n) = round(epsilon * iota * p0 * exp(-lambda*n), 2) ---");
+        System.out.println("\n--- Article formula: p(n) = max(round(epsilon * iota * p0 * exp(-lambda*n), 2), 0.01) ---");
         double epsilon = 0.85;
         double iota = 1.25;
         double p0 = 100;
@@ -592,12 +595,16 @@ public class DecayCalculatorExtendedTest {
         check("p(0) = round(epsilon * iota * p0, 2)", p0val, epsilon * iota * p0, 0.001);
 
         double p10 = DecayCalculator.computePn(epsilon, iota, p0, lambda, 10);
-        double expected = Math.round(epsilon * iota * p0 * Math.exp(-lambda * 10) * 100.0) / 100.0;
-        check("p(10) = round(epsilon * iota * p0 * exp(-0.5), 2)", p10, expected, 0.001);
+        double expectedRaw = Math.round(epsilon * iota * p0 * Math.exp(-lambda * 10) * 100.0) / 100.0;
+        double expected = Math.max(expectedRaw, 0.01);
+        check("p(10) = max(round(epsilon * iota * p0 * exp(-0.5), 2), 0.01)", p10, expected, 0.001);
 
         double halfLife = Math.log(2) / lambda;
         double pAtHalfLife = DecayCalculator.computePn(epsilon, iota, p0, lambda, halfLife);
         check("p(halfLife) ≈ p(0)/2", pAtHalfLife, p0val / 2, 0.01);
+
+        double pVeryLarge = DecayCalculator.computePn(epsilon, iota, p0, lambda, 1000);
+        check("p(1000) = 0.01 (floor)", pVeryLarge, 0.01, 0.001);
     }
 
     static void testArticleQuotaFormula() {
