@@ -79,6 +79,7 @@ public final class UltimateShop extends JavaPlugin {
         }
         new ListenerManager();
         new TaskManager();
+        new ChinaHolidayManager();
         if (LocateManager.enableThis()) {
             new LocateManager();
         }
@@ -98,6 +99,9 @@ public final class UltimateShop extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (ChinaHolidayManager.chinaHolidayManager != null) {
+            ChinaHolidayManager.chinaHolidayManager.shutdown();
+        }
         if (CacheManager.cacheManager.serverCache != null) {
             CacheManager.cacheManager.serverCache.shutCacheOnDisable(true);
         }

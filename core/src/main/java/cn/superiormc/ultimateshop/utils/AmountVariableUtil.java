@@ -1,6 +1,7 @@
 package cn.superiormc.ultimateshop.utils;
 
 import cn.superiormc.ultimateshop.managers.CacheManager;
+import cn.superiormc.ultimateshop.managers.ChinaHolidayManager;
 import cn.superiormc.ultimateshop.managers.ConfigManager;
 import cn.superiormc.ultimateshop.objects.buttons.ObjectItem;
 import cn.superiormc.ultimateshop.objects.caches.ObjectUseTimesCache;
@@ -10,6 +11,7 @@ import org.bukkit.entity.Player;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 
 public class AmountVariableUtil {
 
@@ -63,6 +65,28 @@ public class AmountVariableUtil {
         double lastSellServerSeconds = seconds(serverCache != null ? serverCache.getSellLastTimeName() : "0");
         double lastResetSellServerSeconds = seconds(serverCache != null ? serverCache.getSellLastResetTimeName() : "0");
         String calculatedEnvironmentIndex = modelEnvironmentIndex(player, dayOfYear);
+        LocalDate today = CommonUtil.getNowTime().toLocalDate();
+        ChinaHolidayManager hm = ChinaHolidayManager.chinaHolidayManager;
+        boolean holidayEnabled = hm != null && hm.isLoaded();
+        int isChinaHoliday = 0;
+        int isChinaWorkday = 1;
+        String chinaHolidayName = "";
+        String chinaHolidayBeta = modelValue(player, "beta", "1");
+        String muWinterAuto = modelValue(player, "mu-winter", "0");
+        String muSummerAuto = modelValue(player, "mu-summer", "0");
+        String muNationalAuto = modelValue(player, "mu-national", "0");
+        if (holidayEnabled) {
+            isChinaHoliday = hm.isHoliday(today) ? 1 : 0;
+            isChinaWorkday = hm.isActualWorkday(today) ? 1 : 0;
+            chinaHolidayName = hm.getHolidayName(today);
+            chinaHolidayBeta = decimal(hm.getBeta(today));
+            if (hm.getMuWinter() > 0) {
+                muWinterAuto = decimal(hm.getMuWinter());
+            }
+            if (hm.getMuNational() > 0) {
+                muNationalAuto = decimal(hm.getMuNational());
+            }
+        }
 
         String[] commonVariables = new String[] {
                 "buy-times-player", String.valueOf(adjustedPlayerBuyTimes),
@@ -143,7 +167,14 @@ public class AmountVariableUtil {
                 "sell-decayed-player", decayed(player, adjustedPlayerSellTimes, lastResetSellPlayerSeconds),
                 "sell-total-decayed-player", decayed(player, adjustedPlayerTotalSellTimes, lastSellPlayerSeconds),
                 "sell-decayed-server", decayed(player, adjustedServerSellTimes, lastResetSellServerSeconds),
-                "sell-total-decayed-server", decayed(player, adjustedServerTotalSellTimes, lastSellServerSeconds)
+                "sell-total-decayed-server", decayed(player, adjustedServerTotalSellTimes, lastSellServerSeconds),
+                "is-china-holiday", String.valueOf(isChinaHoliday),
+                "is-china-workday", String.valueOf(isChinaWorkday),
+                "china-holiday-name", chinaHolidayName,
+                "china-holiday-beta", chinaHolidayBeta,
+                "mu-winter-auto", muWinterAuto,
+                "mu-summer-auto", muSummerAuto,
+                "mu-national-auto", muNationalAuto
         };
 
         text = CommonUtil.modifyString(player, text, commonVariables);

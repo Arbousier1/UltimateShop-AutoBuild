@@ -399,6 +399,13 @@ amount: 'SIGMA(1, 10, "i * i")'
 | `{sell-limit-left-player}` | 剩余额度 | 当前玩家个人卖出剩余额度 |
 | `{sell-limit-server}` | 全服额度上限 | 当前全服卖出限制 |
 | `{sell-limit-left-server}` | 全服剩余额度 | 当前全服卖出剩余额度 |
+| `{is-china-holiday}` | `beta(t)` 判定 | 今天是否为中国法定假日或周末，`1` = 是，`0` = 否（需启用 china-holiday） |
+| `{is-china-workday}` | `beta(t)` 判定 | 今天是否为中国实际工作日（含调休上班），`1` = 是，`0` = 否（需启用 china-holiday） |
+| `{china-holiday-name}` | — | 今天的中国假日名称，如"春节""国庆节"；周末返回"周末"；工作日返回空（需启用 china-holiday） |
+| `{china-holiday-beta}` | `beta(t)` | 基于真实中国节假日自动计算的 beta 值：小假期 `0.95`，中长假期/周末 `0.98`，工作日 `1.0`（需启用 china-holiday） |
+| `{mu-winter-auto}` | `mu_i` | 从 API 自动计算的中长假期（春节）时间中值，可替代手动配置的 `{mu_winter}`（需启用 china-holiday） |
+| `{mu-summer-auto}` | `mu_i` | 暑假时间中值（API 无暑假数据，始终为 0，仍需手动配置 `{mu_summer}`） |
+| `{mu-national-auto}` | `mu_i` | 从 API 自动计算的中长假期（国庆）时间中值，可替代手动配置的 `{mu_national}`（需启用 china-holiday） |
 
 `last-*` 变量返回的是秒数。如果公式按天计算，可以写成 `{last-sell-player} / 86400`。
 
@@ -433,15 +440,132 @@ placeholder:
       decay-tau-days: 7
 ```
 
-这些配置值也可以写 PlaceholderAPI，例如：
+### 中国法定节假日 API 集成
+
+插件支持通过在线 API 自动获取中国法定节假日和调休数据，确保节假日相关变量与国务院办公厅每年公告的真实放假安排一致，包括调休上班日。
+
+实现遵循文章模型中 `alpha_i`（中长假期）与 `beta(t)`（短期时间因素）的分工：
+- **中长假期**（春节、国庆等）的主要影响由 `epsilon(t)` 中的 `alpha_i` 承担，`beta(t)` 只取 `0.98`（与周末相同）
+- **小假期**（元旦、清明、劳动节、端午、中秋等）由 `beta(t)` 承担，取 `0.95`
+- 这样避免了中长假期在 `epsilon(t)` 和 `beta(t)` 中被双重计算
+
+#### 启用方式
+
+在 `config.yml` 中设置：
 
 ```yaml
-environment-index: "%custom_environment_index%"
-special-price-index: "%custom_special_price_index%"
-noise: "{random_daily}"
+placeholder:
+  data:
+    china-holiday:
+      enabled: true
+      api-url: 'https://timor.tech/api/holiday/year/{year}'
+      refresh-interval-ticks: 72000
+      major-holiday-winter: '春节'
+      major-holiday-summer: ''
+      major-holiday-national: '国庆节'
+      beta-minor-holiday: 0.95
+      beta-major-holiday: 0.98
+      beta-weekend: 0.98
+      beta-workday: 1.0
 ```
 
-`p_0` 通常是每个商品自己的基础价格，最直接的写法是在商品 `amount` 里写数字，例如 `100 * E ^ ...`。如果你确实需要统一从配置读取基础价，也可以使用 `{p_0}`。
+| 配置项 | 含义 | 默认值 |
+| --- | --- | --- |
+| `enabled` | 是否启用中国节假日 API | `false` |
+| `api-url` | 节假日数据 API 地址，`{year}` 会被替换为当前年份 | `https://timor.tech/api/holiday/year/{year}` |
+| `refresh-interval-ticks` | 自动刷新间隔（tick），72000 = 约 1 小时 | `72000` |
+| `major-holiday-winter` | 对应文章 `alpha_winter` 的中长假期名称，API 数据中名称包含此值的假日被视为"中长假期" | `春节` |
+| `major-holiday-summer` | 对应文章 `alpha_summer` 的中长假期名称（API 无暑假数据，留空即可） | 空 |
+| `major-holiday-national` | 对应文章 `alpha_national` 的中长假期名称 | `国庆节` |
+| `beta-minor-holiday` | 小假期的 beta 值（元旦、清明、劳动节、端午、中秋等） | `0.95` |
+| `beta-major-holiday` | 中长假期的 beta 值（春节、国庆等，主要影响已在 epsilon 中） | `0.98` |
+| `beta-weekend` | 普通周末的 beta 值 | `0.98` |
+| `beta-workday` | 工作日的 beta 值 | `1.0` |
+
+#### 数据来源
+
+默认使用 [timor.tech](https://timor.tech/api/holiday) 免费节假日 API，数据来源于国务院办公厅公告。如果该 API 不可用，插件会自动回退到 [NateScarlet/holiday-cn](https://github.com/NateScarlet/holiday-cn) 的 GitHub 开源数据。
+
+#### 判定逻辑
+
+遵循文章中 `alpha_i`（中长假期）与 `beta(t)`（短期时间因素）的分工：
+
+- **中长假期**（春节、国庆等）：`is-china-holiday = 1`，`china-holiday-beta = 0.98`。主要经济环境影响由 `epsilon(t)` 中的 `alpha_i` 承担，`beta(t)` 只反映"今天不上线"的短期因素
+- **小假期**（元旦、清明、劳动节、端午、中秋等）：`is-china-holiday = 1`，`china-holiday-beta = 0.95`。这些假期没有对应的 `alpha_i`，全部影响由 `beta(t)` 承担
+- **调休上班日**（如国庆后的周六补班）：`is-china-workday = 1`，`china-holiday-beta = 1.0`
+- **普通周末**：不在 API 数据中的周六周日，`is-china-holiday = 1`，`china-holiday-beta = 0.98`
+
+#### `mu_i` 自动计算
+
+启用 API 后，插件会自动计算中长假期的 `mu_i`（时间中值，单位为一年中的第几天），提供以下变量：
+
+| 变量 | 含义 | 对应文章参数 |
+| --- | --- | --- |
+| `{mu-winter-auto}` | 春节假期的天数中值 | `mu_winter` |
+| `{mu-summer-auto}` | 暑假天数中值（API 无数据，始终为 0） | `mu_summer` |
+| `{mu-national-auto}` | 国庆假期的天数中值 | `mu_national` |
+
+可以在 `economy-model` 配置中用这些变量替代手动值：
+
+```yaml
+economy-model:
+  mu-winter: '{mu-winter-auto}'
+  mu-summer: 213
+  mu-national: '{mu-national-auto}'
+```
+
+#### 可直接复制的公式
+
+**推荐写法**：`{china-holiday-beta}` 与 `{epsilon-calculated}` 配合使用，符合文章分工——中长假期由 `epsilon` 承担主要影响，`beta` 只处理短期因素：
+
+```yaml
+amount: "ROUND(MAX(1, {epsilon-calculated} * {china-holiday-beta} * {iota} * 100 * E ^ (-{lambda} * {sell-decayed-player})), 2)"
+```
+
+仅使用 `{china-holiday-beta}` 而不用 `{epsilon-calculated}`（不配置 `alpha_i` 时的简化版）：
+
+```yaml
+amount: "ROUND(MAX(1, {china-holiday-beta} * {iota} * 100 * E ^ (-{lambda} * {sell-decayed-player})), 2)"
+```
+
+仅在假日生效的加价（工作日原价，假日涨价 5%）：
+
+```yaml
+amount: "ROUND(MAX(1, (1 + 0.05 * {is-china-holiday}) * 100 * E ^ (-{lambda} * {sell-decayed-player})), 2)"
+```
+
+假日禁止收购：
+
+```yaml
+amount: "IF({is-china-holiday} == 0, ROUND(MAX(1, 100 * E ^ (-{lambda} * {sell-decayed-player})), 2), -1)"
+```
+
+调休上班日额外收购额度：
+
+```yaml
+sell-limits:
+  default: "ROUND(({Q_B} + {gamma} * {P}) * {T} * (1 + 0.2 * {is-china-workday}), 0)"
+```
+
+### 物品参数是否可以单独设置
+
+`economy-model` 下的参数（`lambda`、`beta`、`alpha-*`、`mu-*`、`sigma-*` 等）是**全局配置**，所有商品共用。但每个商品可以在自己的 `amount` 表达式中直接写不同的基础价格和公式，实现等效的"单独设置"：
+
+```yaml
+items:
+  A:
+    sell-prices:
+      1:
+        economy-plugin: Vault
+        amount: "ROUND(MAX(1, 100 * E ^ (-0.05 * {sell-decayed-player})), 2)"
+  B:
+    sell-prices:
+      1:
+        economy-plugin: Vault
+        amount: "ROUND(MAX(1, 50 * E ^ (-0.1 * {sell-decayed-player})), 2)"
+```
+
+上面物品 A 的基础价是 100、衰减系数 0.05，物品 B 的基础价是 50、衰减系数 0.1，互不影响。如果需要更复杂的 per-item 参数，可以通过 PlaceholderAPI 在 `amount` 中引用外部变量。
 
 ### 插件变量公式写法
 
