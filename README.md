@@ -8,13 +8,13 @@
 
 - **EvalEx 3.6.1 替换 Crunch**：将原有的 Crunch 数学引擎替换为 EvalEx 3.6.1，利用其原生 `BigDecimal` 支持，避免浮点精度问题。
 - **新增 SIGMA 自定义函数**：为 EvalEx 实现 `SIGMA(start, end, "body")` 求和函数，支持在 `amount` 表达式里直接写累加运算。
-- **数学测试与构建验证**：把 `MathFunctionTest` 移到 `core/src/test/java`，不打包进最终 JAR；新增 `:core:testMath` 构建任务，在构建过程中验证 EvalEx 和 SIGMA 表达式。
+- **数学测试与构建验证**：新建 `DecayCalculator.java` 纯 Java 计算类，从 `AmountVariableUtil` 提取核心公式逻辑（p(n)/M(n)/ε(t)/Q/n(t)/假期影响），不依赖 Bukkit API 可直接测试。新增 3 个测试文件共 2176 个测试用例（`DecayCalculatorTest`、`DecayCalculatorExtendedTest`、`AmountVariableUtilPureTest`），覆盖每个公式的边界条件、属性不变式、数值稳定性、并发安全和性能基准；新增 `:core:testDecay`、`:core:testDecayExtended`、`:core:testPureUtils`、`:core:testAll` 构建任务。
 - **动态经济模型变量**：新增 `AmountVariableUtil.java`（~360 行）统一管理所有变量替换逻辑；重构 `ObjectLimit`、`ObjectSinglePrice`、`ObjectSingleProduct`，将原来分散在三处的重复变量替换代码集中到一处。新增 70+ 个文章模型变量，包括 `{P}`、`{t}`、`{p_0}`、`{Q_B}`、`{gamma}`、`{T}`、`{epsilon}`、`{iota}`、`{alpha_*}`、`{mu_*}`、`{sigma_*}`、`{lambda}`、`{delta}`、`{tau}`、`{nu}`、`{T_history}` 等，以及 `{epsilon-calculated}` 预计算环境指数、`{Q}` 自动计算额度。
 - **历史周期序列存储**：在 `ObjectUseTimesCache` 中新增 `PeriodRecord` 内部类和 `sellHistory`/`buyHistory` 列表，每次周期重置时自动归档当前周期的售出/买入次数和重置时间点。最多保留 `max-history-periods` 个周期（默认 30，可配置）。数据通过 YAML 和 SQL（JSON 列）持久化。`{sell-decayed-player}`、`{sell-decayed-server}`、`{buy-decayed-player}`、`{buy-decayed-server}` 变量基于真实历史周期序列，按文章公式 `FLOOR(n_i(0) / (E ^ (delta * (t_i - tau)) + 1))` 对每个周期分别计算衰减后求和，完全还原文章中的多历史周期序列模型。
 - **累计收益 M(n) 追踪**：在 `ObjectUseTimesCache` 中新增 `totalSellRevenue`/`totalBuyCost` 字段，每次交易完成后自动累加实际金额（包括物品和货币），通过 YAML 和 SQL 持久化。提供 `{sell-revenue-player}`/`{M_sell}`、`{buy-cost-player}`/`{M_buy}`、`{sell-revenue-server}`、`{buy-cost-server}` 变量，完全实现文章中的累计收益 M(n) = Σ p(n')。
 - **`economy-model` 配置节**：在 `config.yml` 新增 `placeholder.data.economy-model` 配置节，包含价格衰减、时间恢复、经济环境指数、假期影响、额度池等全部模型参数，每个值都支持数字或 PlaceholderAPI 表达式。
 - **中国法定节假日 API 集成**：新增 `ChinaHolidayManager.java`，启动时异步拉取 [timor.tech](https://timor.tech/api/holiday) 免费 API，自动获取国务院公告的真实放假和调休数据（不可用时回退到 [NateScarlet/holiday-cn](https://github.com/NateScarlet/holiday-cn)）。区分中长假期（春节、国庆）与小假期（元旦、清明等），自动计算 `mu_i`，提供 `{china-holiday-beta}`、`{is-china-holiday}`、`{is-china-workday}`、`{china-holiday-name}`、`{mu-*-auto}` 等变量。
-- **CI 自动构建**：新增 `.github/workflows/build.yml`，push 时自动执行 `testMath` 验证 → `shadowJar` 打包并上传产物。
+- **CI 自动构建与依赖更新**：新增 `.github/workflows/build.yml`，push 时自动执行 `testMath` + `testDecay` + `testDecayExtended` + `testPureUtils` 全量测试验证 → `shadowJar` 打包并上传产物。新增 `.github/renovate.json`，Renovate Bot 每周末自动检测 Gradle 依赖更新并提 PR（排除本地 JAR 和 SNAPSHOT 版本）。
 - **文档补充**：在 README 中补充了 EvalEx 完整语法（基础运算、常量、布尔、数字函数、三角函数、双曲函数）、SIGMA 用法、文章模型变量映射与公式示例、节假日 API 配置与判定逻辑。
 
 ## 🔒 No Need to Worry About Custom Item Changes
@@ -406,7 +406,7 @@ amount: 'SIGMA(1, 10, "i * i")'
 
 结论：插件已经补充了文章公式常用的变量入口，可以直接在商品、价格和限购的 `amount` 表达式里使用。玩家活跃时长 `P`、额度相关参数 `Q/Q_B/T`、当前日期 `t`、经济环境指数 `epsilon`、假期环境参数 `alpha/mu/sigma/beta`、特别物价指数 `iota`、随机扰动 `noise`、衰减系数 `lambda`、时间恢复参数 `delta/tau`、周期上限 `nu` 都有对应变量。
 
-仍然不能完全自动还原文章里的"多历史周期序列" `n_i(0)` / `n_i(t_i)`，因为插件原本只保存当前周期次数和累计次数，不保存每一个历史周期的序列。为了解决常用场景，插件额外提供了 `{sell-decayed-player}`、`{sell-decayed-server}`、`{buy-decayed-player}`、`{buy-decayed-server}` 变量，这些变量基于真实的历史周期序列数据，按文章公式 `FLOOR(n_i(0) / (E ^ (delta * (t_i - tau)) + 1))` 对每个历史周期分别计算衰减后求和，再加上当前周期的时间衰减值。
+实时多历史周期序列 `n_i(0)` / `n_i(t_i)` 已通过 `PeriodRecord` 存储完整实现。插件在每次周期重置时自动归档当前周期的售出/买入次数和重置时间点到 `sellHistory`/`buyHistory` 列表，按文章公式 `FLOOR(n_i(0) / (E ^ (delta * (t_i - tau)) + 1))` 对每个历史周期分别计算衰减后求和。`{sell-decayed-player}`、`{sell-decayed-server}`、`{buy-decayed-player}`、`{buy-decayed-server}` 变量基于真实的历史周期序列数据计算，无需近似或替代方案。
 
 文章里的累计收益 `M(n) = Σ p(n')` 已通过新增 `totalSellRevenue` / `totalBuyCost` 字段实现，每次交易完成后自动累加实际金额，并提供 `{sell-revenue-player}` / `{M_sell}` 等变量。
 
@@ -474,7 +474,7 @@ amount: 'SIGMA(1, 10, "i * i")'
 | `{is-china-holiday}` | `beta(t)` 判定 | 今天是否为中国法定假日或周末，`1` = 是，`0` = 否（需启用 china-holiday） |
 | `{is-china-workday}` | `beta(t)` 判定 | 今天是否为中国实际工作日（含调休上班），`1` = 是，`0` = 否（需启用 china-holiday） |
 | `{china-holiday-name}` | — | 今天的中国假日名称，如"春节""国庆节"；周末返回"周末"；工作日返回空（需启用 china-holiday） |
-| `{china-holiday-beta}` | `beta(t)` | 基于真实中国节假日自动计算的 beta 值：小假期 `0.95`，中长假期/周末 `0.98`，工作日 `1.0`（需启用 china-holiday） |
+| `{china-holiday-beta}` | `beta(t)` | 基于真实中国节假日自动计算的 beta 值：小假期 `0.95`，周末 `0.98`，中长假期/工作日 `1.0`（中长假期影响由 `alpha_i` 承担）（需启用 china-holiday） |
 | `{mu-winter-auto}` | `mu_i` | 从 API 自动计算的中长假期（春节）时间中值，可替代手动配置的 `{mu_winter}`（需启用 china-holiday） |
 | `{mu-summer-auto}` | `mu_i` | 暑假时间中值（API 无暑假数据，始终为 0，仍需手动配置 `{mu_summer}`） |
 | `{mu-national-auto}` | `mu_i` | 从 API 自动计算的中长假期（国庆）时间中值，可替代手动配置的 `{mu_national}`（需启用 china-holiday） |
@@ -527,7 +527,7 @@ noise: "{random_daily}"
 插件支持通过在线 API 自动获取中国法定节假日和调休数据，确保节假日相关变量与国务院办公厅每年公告的真实放假安排一致，包括调休上班日。
 
 实现遵循文章模型中 `alpha_i`（中长假期）与 `beta(t)`（短期时间因素）的分工：
-- **中长假期**（春节、国庆等）的主要影响由 `epsilon(t)` 中的 `alpha_i` 承担，`beta(t)` 只取 `0.98`（与周末相同）
+- **中长假期**（春节、国庆等）的主要影响由 `epsilon(t)` 中的 `alpha_i` 承担，`beta(t)` 返回 `1.0`（不在 beta 层重复折扣）
 - **小假期**（元旦、清明、劳动节、端午、中秋等）由 `beta(t)` 承担，取 `0.95`
 - 这样避免了中长假期在 `epsilon(t)` 和 `beta(t)` 中被双重计算
 
@@ -546,7 +546,6 @@ placeholder:
       major-holiday-summer: ''
       major-holiday-national: '国庆节'
       beta-minor-holiday: 0.95
-      beta-major-holiday: 0.98
       beta-weekend: 0.98
       beta-workday: 1.0
 ```
@@ -560,7 +559,6 @@ placeholder:
 | `major-holiday-summer` | 对应文章 `alpha_summer` 的中长假期名称（API 无暑假数据，留空即可） | 空 |
 | `major-holiday-national` | 对应文章 `alpha_national` 的中长假期名称 | `国庆节` |
 | `beta-minor-holiday` | 小假期的 beta 值（元旦、清明、劳动节、端午、中秋等） | `0.95` |
-| `beta-major-holiday` | 中长假期的 beta 值（春节、国庆等，主要影响已在 epsilon 中） | `0.98` |
 | `beta-weekend` | 普通周末的 beta 值 | `0.98` |
 | `beta-workday` | 工作日的 beta 值 | `1.0` |
 
@@ -572,7 +570,7 @@ placeholder:
 
 遵循文章中 `alpha_i`（中长假期）与 `beta(t)`（短期时间因素）的分工：
 
-- **中长假期**（春节、国庆等）：`is-china-holiday = 1`，`china-holiday-beta = 0.98`。主要经济环境影响由 `epsilon(t)` 中的 `alpha_i` 承担，`beta(t)` 只反映"今天不上线"的短期因素
+- **中长假期**（春节、国庆等）：`is-china-holiday = 1`，`china-holiday-beta = 1.0`。主要经济环境影响由 `epsilon(t)` 中的 `alpha_i` 承担，`beta(t)` 不额外折扣
 - **小假期**（元旦、清明、劳动节、端午、中秋等）：`is-china-holiday = 1`，`china-holiday-beta = 0.95`。这些假期没有对应的 `alpha_i`，全部影响由 `beta(t)` 承担
 - **调休上班日**（如国庆后的周六补班）：`is-china-workday = 1`，`china-holiday-beta = 1.0`
 - **普通周末**：不在 API 数据中的周六周日，`is-china-holiday = 1`，`china-holiday-beta = 0.98`
@@ -730,10 +728,10 @@ sell-limits:
 | `iota(t)` | 特别物价指数，例如活动期间指定物品涨价 |
 | `t` | 当前时间、周期或距离出售记录产生的时间 |
 
-文章中的核心单价模型可以转成 EvalEx 写法：
+文章中的核心单价模型可以转成 EvalEx 写法（插件内置已做 `round{·, 2}` 处理）：
 
 ```text
-epsilon * iota * p_0 * E ^ (-lambda * n)
+ROUND(epsilon * iota * p_0 * E ^ (-lambda * n), 2)
 ```
 
 如果直接使用 UltimateShop 的玩家历史卖出总量，可以写成：
