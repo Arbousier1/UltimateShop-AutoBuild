@@ -263,11 +263,21 @@ const COLORS = ['#ff6b6b','#ffd700','#4ecdc4','#45b7d1','#a66cff','#ff9ff3'];
 
 function makeChart(canvasId, datasets, extraOpts) {
   const ctx = document.getElementById(canvasId).getContext('2d');
+  const hasMultiAxis = extraOpts?.extraScales && Object.keys(extraOpts.extraScales).length > 0;
+  const chartType = hasMultiAxis ? 'scatter' : 'line';
+  const sortedDatasets = datasets.map(ds => {
+    if (ds.data && ds.data.length > 0 && ds.data[0].x !== undefined) {
+      const sorted = [...ds.data].sort((a, b) => a.x - b.x);
+      return { ...ds, data: sorted };
+    }
+    return ds;
+  });
   return new Chart(ctx, {
-    type: 'scatter',
-    data: { datasets },
+    type: chartType,
+    data: { datasets: sortedDatasets },
     options: {
       responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+      parsing: { xAxisKey: 'x', yAxisKey: 'y' },
       plugins: {
         legend: { labels: { color:'#aabbcc', font:{size:11}, usePointStyle:true, pointStyle:'line' } },
         tooltip: { backgroundColor:'#1a2634', titleColor:'#00e5ff', bodyColor:'#e0e0e0', borderColor:'#2a3a4a', borderWidth:1, cornerRadius:6,
@@ -287,7 +297,6 @@ function makeChart(canvasId, datasets, extraOpts) {
         },
         ...(extraOpts?.extraScales || {}),
       },
-      elements: { point: { radius: extraOpts?.pointRadius ?? 1.5 } },
     }
   });
 }
@@ -308,24 +317,24 @@ function renderCharts() {
   grid.innerHTML += `<div class="card card-full"><h2>① ε(t) 经济环境指数对价格的影响 · 全年 <span class="tag">横轴=时间(天) 纵轴=价格 蓝线=无假期参考</span></h2><canvas id="c1"></canvas><div class="legend"><span><span class="dot" style="background:#ff6b6b"></span>含假期 ε(t) 价格</span><span><span class="dot" style="background:#4ecdc4;border:1px dashed #4ecdc4"></span>无假期参考价格</span></div></div>`;
   const s1 = scene1(p0, lam), s1b = scene1b(p0, lam);
   makeChart('c1', [
-    { label:'含假期价格', data:s1, borderColor:'#ff6b6b', backgroundColor:'rgba(255,107,107,0.06)', fill:true, showLine:true, borderWidth:2, pointRadius:0, tension:0.4 },
-    { label:'无假期参考', data:s1b, borderColor:'#4ecdc4', showLine:true, borderWidth:1.5, pointRadius:0, tension:0.4, borderDash:[5,5] },
-  ], { xMin:1, xMax:365, pointRadius:0, extraScales:{ x:{ ticks:{ callback:v=>MONTH_TICKS.includes(v)?['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][MONTH_TICKS.indexOf(v)]:'', maxTicksLimit:12 } } } });
+    { label:'含假期价格', data:s1, borderColor:'#ff6b6b', backgroundColor:'rgba(255,107,107,0.06)', fill:true, borderWidth:2, pointRadius:0, tension:0.4 },
+    { label:'无假期参考', data:s1b, borderColor:'#4ecdc4', borderWidth:1.5, pointRadius:0, tension:0.4, borderDash:[5,5] },
+  ], { xMin:1, xMax:365, extraScales:{ x:{ ticks:{ callback:v=>MONTH_TICKS.includes(v)?['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][MONTH_TICKS.indexOf(v)]:'', maxTicksLimit:12 } } } });
 
   // === 图2: 不同 λ ===
   grid.innerHTML += `<div class="card"><h2>② 不同 λ 衰减系数 · 价格轨迹 <span class="tag">120天 · 同交易模式</span></h2><canvas id="c2"></canvas></div>`;
   const s2 = scene2(p0, [0.01, 0.03, lam, 0.1, 0.2], delta, tau, trades);
-  makeChart('c2', s2.map((ds,i)=>({ label:ds.label, data:ds.pts, borderColor:COLORS[i], showLine:true, borderWidth:i===2?3:1.5, pointRadius:0, tension:0.3 })), { xMin:1, xMax:120 });
+  makeChart('c2', s2.map((ds,i)=>({ label:ds.label, data:ds.pts, borderColor:COLORS[i], borderWidth:i===2?3:1.5, pointRadius:0, tension:0.3 })), { xMin:1, xMax:120 });
 
   // === 图3: 不同频率 ===
   grid.innerHTML += `<div class="card"><h2>③ 不同交易频率 · 价格对比 <span class="tag">120天 · 每周重置</span></h2><canvas id="c3"></canvas></div>`;
   const s3 = scene3(p0, lam, delta, tau);
-  makeChart('c3', s3.map(s=>({ label:s.label, data:s.pts, borderColor:s.color, showLine:true, borderWidth:2, pointRadius:0, tension:0.3 })), { xMin:1, xMax:120 });
+  makeChart('c3', s3.map(s=>({ label:s.label, data:s.pts, borderColor:s.color, borderWidth:2, pointRadius:0, tension:0.3 })), { xMin:1, xMax:120 });
 
   // === 图4: 不同 δ ===
   grid.innerHTML += `<div class="card"><h2>④ 不同 δ 恢复速度 · 价格影响 <span class="tag">90天 · τ=${tau}天 · 周${trades}次</span></h2><canvas id="c4"></canvas></div>`;
   const s4 = scene4(p0, lam, tau, trades);
-  makeChart('c4', s4.map((ds,i)=>({ label:ds.label, data:ds.pts, borderColor:COLORS[i], showLine:true, borderWidth:i===2?3:1.5, pointRadius:0, tension:0.3 })), { xMin:1, xMax:90 });
+  makeChart('c4', s4.map((ds,i)=>({ label:ds.label, data:ds.pts, borderColor:COLORS[i], borderWidth:i===2?3:1.5, pointRadius:0, tension:0.3 })), { xMin:1, xMax:90 });
 
   // === 图5: 365天全模拟 ===
   grid.innerHTML += `<div class="card card-full"><h2>⑤ 365天完整模拟 <span class="tag">每周重置 · 随机交易 · λ=${lam} · δ=${delta} · p₀=${p0}</span></h2><canvas id="c5"></canvas><div class="legend"><span><span class="dot" style="background:#ff6b6b"></span>p(n) 收购价格</span><span><span class="dot" style="background:#ffd700"></span>ε(t) 环境指数(右轴)</span><span><span class="dot" style="background:#4ecdc4"></span>有效售出量 n(t)(右轴)</span><span><span class="dot" style="background:#a66cff"></span>累计收益 M(n)(右轴)</span></div></div>`;
@@ -336,7 +345,7 @@ function renderCharts() {
     { label:'M(n) 累计收益', data:s5.m, borderColor:'#a66cff', showLine:true, borderWidth:1.5, pointRadius:0, tension:0.3, yAxisID:'y3' },
     { label:'n(t) 有效售出量', data:s5.nDecayed, borderColor:'#4ecdc4', showLine:true, borderWidth:1, pointRadius:0, tension:0.4, yAxisID:'y4', borderDash:[2,2] },
   ], {
-    pointRadius:0, xMin:1, xMax:365, yZero:false,
+    xMin:1, xMax:365, yZero:false,
     extraScales: {
       y2: { type:'linear', position:'right', grid:{display:false}, ticks:{color:'#ffd700', font:{size:9}}, min:0.7, max:1.05, title:{display:true, text:'ε(t)', color:'#ffd700', font:{size:10}} },
       y3: { type:'linear', position:'right', grid:{display:false}, ticks:{color:'#a66cff', font:{size:9}}, title:{display:true, text:'M(n)', color:'#a66cff', font:{size:10}} },
@@ -348,16 +357,33 @@ function renderCharts() {
   grid.innerHTML += `<div class="card"><h2>⑥ 单周期内价格变化 <span class="tag">7天 · 每周重置后价格逐渐恢复</span></h2><canvas id="c6"></canvas></div>`;
   const s6 = scene6(p0, lam, delta, tau, trades);
   makeChart('c6', [
-    { label:'单周期价格', data:s6, borderColor:'#ffd700', backgroundColor:'rgba(255,215,0,0.1)', fill:true, showLine:true, borderWidth:3, pointRadius:3, tension:0.3 },
-  ], { xMin:0, xMax:6.5, pointRadius:3, yZero:true, extraScales:{ x:{ ticks:{ stepSize:1, callback:v=>`第${v}天` } } } });
+    { label:'单周期价格', data:s6, borderColor:'#ffd700', backgroundColor:'rgba(255,215,0,0.1)', fill:true, borderWidth:3, pointRadius:4, pointBackgroundColor:'#ffd700', tension:0.3 },
+  ], { xMin:0, xMax:6.5, yZero:true, extraScales:{ x:{ ticks:{ stepSize:1, callback:v=>`第${v}天` } } } });
 
   // === 图7: Monte Carlo ===
   grid.innerHTML += `<div class="card"><h2>⑦ Monte Carlo 价格分布 <span class="tag">365天 × 150次/天 · 含随机噪声</span></h2><canvas id="c7"></canvas></div>`;
   const s7 = scene7(p0, lam);
-  makeChart('c7', [
-    { label:'模拟价格分布', data:s7.scatter, backgroundColor:'rgba(255,107,107,0.08)', pointRadius:1.2 },
-    { label:'中央趋势线', data:s7.trend, borderColor:'#ff6b6b', showLine:true, borderWidth:2, pointRadius:0, tension:0.4 },
-  ], { xMin:1, xMax:365, pointRadius:1.2, extraScales:{ x:{ ticks:{ callback:v=>MONTH_TICKS.includes(v)?['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][MONTH_TICKS.indexOf(v)]:'', maxTicksLimit:12 } } } });
+  const ctx7 = document.getElementById('c7').getContext('2d');
+  new Chart(ctx7, {
+    type: 'scatter',
+    data: { datasets: [
+      { label:'模拟价格分布', data:s7.scatter.sort((a,b)=>a.x-b.x), backgroundColor:'rgba(255,107,107,0.12)', pointRadius:1.2 },
+      { label:'中央趋势线', data:s7.trend.sort((a,b)=>a.x-b.x), borderColor:'#ff6b6b', backgroundColor:'rgba(255,107,107,0.05)', fill:true, showLine:true, borderWidth:2, pointRadius:0, tension:0.4 },
+    ] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+      parsing: { xAxisKey: 'x', yAxisKey: 'y' },
+      plugins: {
+        legend: { labels: { color:'#aabbcc', font:{size:11}, usePointStyle:true, pointStyle:'line' } },
+        tooltip: { backgroundColor:'#1a2634', titleColor:'#00e5ff', bodyColor:'#e0e0e0', borderColor:'#2a3a4a', borderWidth:1, cornerRadius:6,
+          callbacks: { label: ctx => `第${ctx.raw.x}天: ${ctx.raw.y}` } },
+      },
+      scales: {
+        x: { type:'linear', grid:{color:'#1a2a3a'}, ticks:{color:'#8899aa', font:{size:10}, callback:v=>MONTH_TICKS.includes(v)?['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][MONTH_TICKS.indexOf(v)]:'', maxTicksLimit:12}, title:{display:true, text:'时间 （天）', color:'#8899aa', font:{size:11}}, min:1, max:365 },
+        y: { grid:{color:'#1a2a3a'}, ticks:{color:'#8899aa', font:{size:10}}, title:{display:true, text:'收购价格 p(n) （DC币）', color:'#8899aa', font:{size:11}}, beginAtZero:true },
+      }
+    }
+  });
 
   // Stats
   const allPrices = s5.price.map(p=>p.y);
