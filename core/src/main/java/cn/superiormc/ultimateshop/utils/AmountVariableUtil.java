@@ -236,8 +236,8 @@ public class AmountVariableUtil {
             history.add(new DecayCalculator.PeriodRecord(r.getBuyTimes(), r.getSellTimes(), r.getResetTime()));
         }
         LocalDateTime currentResetTime = isSell
-                ? (isPlayer ? cache.getLastResetSellTime() : cache.getLastResetSellTime())
-                : (isPlayer ? cache.getLastResetBuyTime() : cache.getLastResetBuyTime());
+                ? cache.getLastResetSellTimeAsDateTime()
+                : cache.getLastResetBuyTimeAsDateTime();
         double result = DecayCalculator.computeDecayedFromHistory(
                 history, currentTimes, currentResetTime, isSell, delta, tauDays, CommonUtil.getNowTime());
         return decimal(result);

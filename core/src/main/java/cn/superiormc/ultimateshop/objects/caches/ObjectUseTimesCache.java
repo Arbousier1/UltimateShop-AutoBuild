@@ -475,11 +475,19 @@ public class ObjectUseTimesCache {
         return CommonUtil.timeToString(lastResetBuyTime);
     }
 
+    public LocalDateTime getLastResetBuyTimeAsDateTime() {
+        return lastResetBuyTime;
+    }
+
     public String getLastResetSellTime() {
         if (lastResetSellTime == null) {
             return null;
         }
         return CommonUtil.timeToString(lastResetSellTime);
+    }
+
+    public LocalDateTime getLastResetSellTimeAsDateTime() {
+        return lastResetSellTime;
     }
 
     public String getCooldownBuyTime() {
