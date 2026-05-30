@@ -1,0 +1,73 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": ["every weekend"],
+  "timezone": "Asia/Shanghai",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "behind-base-branch",
+  "labels": ["dependencies"],
+  "commitMessagePrefix": "deps:",
+  "commitMessageAction": "update",
+  "semanticCommits": "enabled",
+  "separateMajorMinor": true,
+  "separateMinorPatch": false,
+  "packageRules": [
+    {
+      "matchManagers": ["gradle"],
+      "matchDepTypes": ["compileOnly"],
+      "rangeStrategy": "pin",
+      "groupName": "compile-only dependencies",
+      "groupSlug": "compile-only",
+      "schedule": ["every weekend"],
+      "stabilityDays": 7
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchDepTypes": ["implementation"],
+      "rangeStrategy": "pin",
+      "groupName": "implementation dependencies",
+      "groupSlug": "implementation",
+      "schedule": ["every weekend"],
+      "stabilityDays": 3
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackagePrefixes": ["io.papermc.paper", "org.spigotmc"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackagePatterns": [".*-SNAPSHOT$"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchFileNames": ["core/lib/*.jar"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "groupSlug": "github-actions",
+      "schedule": ["every weekend"],
+      "stabilityDays": 3
+    }
+  ],
+  "gradle": {
+    "enabled": true,
+    "fileMatch": ["^core/build\\.gradle\\.kts$", "^build\\.gradle\\.kts$"]
+  },
+  "lockFileMaintenance": {
+    "enabled": false
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Dependency Dashboard",
+  "dependencyDashboardLabels": ["dependencies"]
+}
