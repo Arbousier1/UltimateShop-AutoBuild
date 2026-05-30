@@ -4,11 +4,16 @@
 
 ## 这个 Fork 做了什么
 
-- 把数学验证程序 `MathFunctionTest` 移到 `core/src/test/java`，只用于构建时验证，不会打进最终 JAR。
-- 增加了 `:core:testMath` 任务，用来在构建过程中跑 EvalEx 和自定义 `SIGMA` 的表达式验证。
-- 补充了 README 中的数学表达式说明，包含内置函数、布尔写法、占位符和自定义函数。
-- 根据文章《一种解决 Minecraft 服务器常见经济问题的新尝试（理论篇）》补充了动态收购模型参数说明。
-- 新增中国法定节假日 API 集成，通过在线 API 自动获取真实放假和调休数据，提供 `{china-holiday-beta}`、`{mu-*-auto}` 等变量。
+相比原项目，本分支有以下代码层面的改动：
+
+- **EvalEx 3.6.1 替换 Crunch**：将原有的 Crunch 数学引擎替换为 EvalEx 3.6.1，利用其原生 `BigDecimal` 支持，避免浮点精度问题。
+- **新增 SIGMA 自定义函数**：为 EvalEx 实现 `SIGMA(start, end, "body")` 求和函数，支持在 `amount` 表达式里直接写累加运算。
+- **数学测试与构建验证**：把 `MathFunctionTest` 移到 `core/src/test/java`，不打包进最终 JAR；新增 `:core:testMath` 构建任务，在构建过程中验证 EvalEx 和 SIGMA 表达式。
+- **动态经济模型变量**：新增 `AmountVariableUtil.java`（~320 行）统一管理所有变量替换逻辑；重构 `ObjectLimit`、`ObjectSinglePrice`、`ObjectSingleProduct`，将原来分散在三处的重复变量替换代码集中到一处。新增 70+ 个文章模型变量，包括 `{P}`、`{t}`、`{p_0}`、`{Q_B}`、`{gamma}`、`{T}`、`{epsilon}`、`{iota}`、`{alpha_*}`、`{mu_*}`、`{sigma_*}`、`{lambda}`、`{delta}`、`{tau}`、`{nu}`、`{T_history}`、`{sell-decayed-*}` 等，以及 `{epsilon-calculated}` 预计算环境指数、`{Q}` 自动计算额度、`{sell-decayed-player}` 时间衰减售出量。
+- **`economy-model` 配置节**：在 `config.yml` 新增 `placeholder.data.economy-model` 配置节，包含价格衰减、时间恢复、经济环境指数、假期影响、额度池等全部模型参数，每个值都支持数字或 PlaceholderAPI 表达式。
+- **中国法定节假日 API 集成**：新增 `ChinaHolidayManager.java`，启动时异步拉取 [timor.tech](https://timor.tech/api/holiday) 免费 API，自动获取国务院公告的真实放假和调休数据（不可用时回退到 [NateScarlet/holiday-cn](https://github.com/NateScarlet/holiday-cn)）。区分中长假期（春节、国庆）与小假期（元旦、清明等），自动计算 `mu_i`，提供 `{china-holiday-beta}`、`{is-china-holiday}`、`{is-china-workday}`、`{china-holiday-name}`、`{mu-*-auto}` 等变量。
+- **CI 自动构建**：新增 `.github/workflows/build.yml`，push 时自动执行 `testMath` 验证 → `shadowJar` 打包并上传产物。
+- **文档补充**：在 README 中补充了 EvalEx 完整语法（基础运算、常量、布尔、数字函数、三角函数、双曲函数）、SIGMA 用法、文章模型变量映射与公式示例、节假日 API 配置与判定逻辑。
 
 ## 🔒 No Need to Worry About Custom Item Changes
 
