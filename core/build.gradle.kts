@@ -68,3 +68,11 @@ tasks.register<JavaExec>("testMath") {
     dependsOn(tasks.named("testClasses"))
     classpath = sourceSets["test"].runtimeClasspath
 }
+
+tasks.register<JavaExec>("testDecay") {
+    group = "verification"
+    description = "Run DecayCalculator + Article model tests"
+    mainClass.set("cn.superiormc.ultimateshop.utils.DecayCalculatorTest")
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+}

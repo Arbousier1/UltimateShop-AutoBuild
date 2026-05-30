@@ -13,13 +13,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AmountVariableUtil {
-
-    private static final double SECONDS_PER_DAY = 86400.0;
 
     private AmountVariableUtil() {
     }
@@ -232,32 +229,18 @@ public class AmountVariableUtil {
         if (cache == null) {
             return "0";
         }
-        List<ObjectUseTimesCache.PeriodRecord> history = isSell
+        List<ObjectUseTimesCache.PeriodRecord> rawHistory = isSell
                 ? cache.getSellHistory() : cache.getBuyHistory();
-        double totalDecayed = 0;
-        LocalDateTime now = CommonUtil.getNowTime();
-        for (int i = 0; i < history.size(); i++) {
-            ObjectUseTimesCache.PeriodRecord record = history.get(i);
-            int n0 = isSell ? record.getSellTimes() : record.getBuyTimes();
-            if (n0 <= 0) continue;
-            LocalDateTime resetTime = record.getResetTime();
-            double elapsedDays;
-            if (resetTime != null) {
-                elapsedDays = ChronoUnit.SECONDS.between(resetTime, now) / SECONDS_PER_DAY;
-            } else {
-                elapsedDays = 0;
-            }
-            double decayedValue = Math.floor(n0 / (Math.exp(delta * (elapsedDays - tauDays)) + 1));
-            totalDecayed += decayedValue;
+        List<DecayCalculator.PeriodRecord> history = new ArrayList<>();
+        for (ObjectUseTimesCache.PeriodRecord r : rawHistory) {
+            history.add(new DecayCalculator.PeriodRecord(r.getBuyTimes(), r.getSellTimes(), r.getResetTime()));
         }
-        if (currentTimes > 0 && currentElapsedSeconds > 0) {
-            double elapsedDays = currentElapsedSeconds / SECONDS_PER_DAY;
-            double currentDecayed = Math.floor(currentTimes / (Math.exp(delta * (elapsedDays - tauDays)) + 1));
-            totalDecayed += currentDecayed;
-        } else if (currentTimes > 0) {
-            totalDecayed += currentTimes;
-        }
-        return decimal(totalDecayed);
+        LocalDateTime currentResetTime = isSell
+                ? (isPlayer ? cache.getLastResetSellTime() : cache.getLastResetSellTime())
+                : (isPlayer ? cache.getLastResetBuyTime() : cache.getLastResetBuyTime());
+        double result = DecayCalculator.computeDecayedFromHistory(
+                history, currentTimes, currentResetTime, isSell, delta, tauDays, CommonUtil.getNowTime());
+        return decimal(result);
     }
 
     private static int applyOffset(int value, int offsetAmount, boolean buyOrSell, boolean placeholderBuyOrSell) {
@@ -288,31 +271,20 @@ public class AmountVariableUtil {
     }
 
     private static String modelQuota(Player player, long activeTicks) {
-        double quotaBase = modelDouble(player, "quota-base", 0);
-        double activeWeight = modelDouble(player, "active-weight", 0);
-        double totalQuota = modelDouble(player, "total-quota", 0);
-        double activeHours = activeTicks / 72000.0;
-        return decimal((quotaBase + activeWeight * activeHours) * totalQuota);
+        return decimal(DecayCalculator.computeQuota(
+                modelDouble(player, "quota-base", 0),
+                modelDouble(player, "active-weight", 0),
+                activeTicks / 72000.0,
+                modelDouble(player, "total-quota", 0)));
     }
 
     private static String modelEnvironmentIndex(Player player, int dayOfYear) {
-        double holidayImpact = holidayImpact(player, "winter", dayOfYear)
-                + holidayImpact(player, "summer", dayOfYear)
-                + holidayImpact(player, "national", dayOfYear);
+        double holidayImpact = DecayCalculator.holidayImpact(modelDouble(player, "alpha-winter", 0.15), modelDouble(player, "mu-winter", 0), modelDouble(player, "sigma-winter", 65536), dayOfYear)
+                + DecayCalculator.holidayImpact(modelDouble(player, "alpha-summer", 0.15), modelDouble(player, "mu-summer", 0), modelDouble(player, "sigma-summer", 65536), dayOfYear)
+                + DecayCalculator.holidayImpact(modelDouble(player, "alpha-national", 0.075), modelDouble(player, "mu-national", 0), modelDouble(player, "sigma-national", 33.1776), dayOfYear);
         double beta = modelDouble(player, "beta", 1);
         double noise = modelDouble(player, "noise", 0);
         return decimal((1 - holidayImpact) * beta + noise);
-    }
-
-    private static double holidayImpact(Player player, String name, int dayOfYear) {
-        double alpha = modelDouble(player, "alpha-" + name, 0);
-        double mu = modelDouble(player, "mu-" + name, 0);
-        double sigma = modelDouble(player, "sigma-" + name, 0);
-        if (sigma <= 0) {
-            return 0;
-        }
-        double offset = dayOfYear - mu;
-        return alpha * Math.exp(-Math.pow(offset, 6) / (2 * sigma * sigma));
     }
 
     private static int periodSellLimit(Player player, ObjectItem item) {
@@ -327,15 +299,10 @@ public class AmountVariableUtil {
     }
 
     private static String decayHistoryDays(Player player, int periodSellLimit) {
-        if (periodSellLimit <= 1) {
-            return "0";
-        }
-        double delta = modelDouble(player, "decay-delta", 1);
-        if (delta <= 0) {
-            return "0";
-        }
-        double tauDays = modelDouble(player, "decay-tau-days", 7);
-        return decimal(tauDays + Math.log(periodSellLimit - 1) / delta);
+        return decimal(DecayCalculator.computeDecayHistoryDays(
+                modelDouble(player, "decay-tau-days", 7),
+                modelDouble(player, "decay-delta", 1),
+                periodSellLimit));
     }
 
     private static double seconds(String value) {
