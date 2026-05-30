@@ -116,6 +116,12 @@ public class SQLDatabase extends AbstractDatabase {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("ALTER TABLE ultimateshop_useTimes ADD COLUMN buyHistory TEXT");
         } catch (SQLException ignored) {}
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE ultimateshop_useTimes ADD COLUMN totalSellRevenue DOUBLE DEFAULT 0");
+        } catch (SQLException ignored) {}
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE ultimateshop_useTimes ADD COLUMN totalBuyCost DOUBLE DEFAULT 0");
+        } catch (SQLException ignored) {}
     }
 
     @Override
@@ -210,6 +216,14 @@ public class SQLDatabase extends AbstractDatabase {
                     ObjectUseTimesCache useTimesCache = cache.getSharedUseTimesCache()
                             .get(new UseTimesStorageKey(shop, product));
                     if (useTimesCache != null) {
+                        double totalSellRevenue = rs.getDouble("totalSellRevenue");
+                        if (!rs.wasNull()) {
+                            useTimesCache.setTotalSellRevenue(totalSellRevenue);
+                        }
+                        double totalBuyCost = rs.getDouble("totalBuyCost");
+                        if (!rs.wasNull()) {
+                            useTimesCache.setTotalBuyCost(totalBuyCost);
+                        }
                         loadHistory(useTimesCache,
                                 rs.getString("sellHistory"),
                                 rs.getString("buyHistory"));
@@ -372,7 +386,9 @@ public class SQLDatabase extends AbstractDatabase {
                 cache.getCooldownBuyTime(),
                 cache.getCooldownSellTime(),
                 serializeHistory(cache.getSellHistorySerialized()),
-                serializeHistory(cache.getBuyHistorySerialized())
+                serializeHistory(cache.getBuyHistorySerialized()),
+                cache.getTotalSellRevenue(),
+                cache.getTotalBuyCost()
         );
     }
 
@@ -390,7 +406,9 @@ public class SQLDatabase extends AbstractDatabase {
                               String cooldownBuyTime,
                               String cooldownSellTime,
                               String sellHistory,
-                              String buyHistory) throws SQLException {
+                              String buyHistory,
+                              double totalSellRevenue,
+                              double totalBuyCost) throws SQLException {
         ps.setString(1, playerUUID);
         ps.setString(2, key.shop());
         ps.setString(3, key.product());
@@ -406,6 +424,8 @@ public class SQLDatabase extends AbstractDatabase {
         ps.setString(13, cooldownSellTime);
         ps.setString(14, sellHistory);
         ps.setString(15, buyHistory);
+        ps.setDouble(16, totalSellRevenue);
+        ps.setDouble(17, totalBuyCost);
 
         if (dialect.supportBatch()) {
             ps.addBatch();

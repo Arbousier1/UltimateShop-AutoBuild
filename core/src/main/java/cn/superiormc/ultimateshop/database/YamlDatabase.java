@@ -80,6 +80,12 @@ public class YamlDatabase extends AbstractDatabase {
                     );
                     ObjectUseTimesCache useTimesCache = cache.getSharedUseTimesCache().get(new UseTimesStorageKey(shopID, productID));
                     if (useTimesCache != null) {
+                        if (productSection.contains("total-sell-revenue")) {
+                            useTimesCache.setTotalSellRevenue(productSection.getDouble("total-sell-revenue"));
+                        }
+                        if (productSection.contains("total-buy-cost")) {
+                            useTimesCache.setTotalBuyCost(productSection.getDouble("total-buy-cost"));
+                        }
                         List<Map<?, ?>> sellHistoryList = productSection.getMapList("sellHistory");
                         for (Map<?, ?> record : sellHistoryList) {
                             useTimesCache.addSellHistoryRecord(
@@ -229,6 +235,12 @@ public class YamlDatabase extends AbstractDatabase {
         List<Map<String, Object>> buyHistory = cache.getBuyHistorySerialized();
         if (!buyHistory.isEmpty()) {
             productSection.set("buyHistory", buyHistory);
+        }
+        if (cache.getTotalSellRevenue() != 0) {
+            productSection.set("total-sell-revenue", cache.getTotalSellRevenue());
+        }
+        if (cache.getTotalBuyCost() != 0) {
+            productSection.set("total-buy-cost", cache.getTotalBuyCost());
         }
     }
 

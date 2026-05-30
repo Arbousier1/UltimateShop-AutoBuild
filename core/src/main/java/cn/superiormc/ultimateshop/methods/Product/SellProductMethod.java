@@ -279,6 +279,14 @@ public class SellProductMethod {
             TextUtil.sendMessage(null, TextUtil.pluginPrefix() + " §aSet player limit value to " + newValue + "!");
         }
         tempVal9.setSellUseTimes(tempVal9.getSellUseTimes() + multi);
+        double sellRevenue = 0;
+        if (giveResult != null && !giveResult.empty) {
+            for (var entry : giveResult.getResultMap().entrySet()) {
+                sellRevenue += entry.getValue().doubleValue();
+            }
+            tempVal9.addSellRevenue(sellRevenue);
+            tempVal8.addSellRevenue(sellRevenue);
+        }
         tempVal9.setLastSellTime(CommonUtil.getNowTime());
         tempVal9.setCooldownSellTime();
 

@@ -11,6 +11,7 @@
 - **数学测试与构建验证**：把 `MathFunctionTest` 移到 `core/src/test/java`，不打包进最终 JAR；新增 `:core:testMath` 构建任务，在构建过程中验证 EvalEx 和 SIGMA 表达式。
 - **动态经济模型变量**：新增 `AmountVariableUtil.java`（~360 行）统一管理所有变量替换逻辑；重构 `ObjectLimit`、`ObjectSinglePrice`、`ObjectSingleProduct`，将原来分散在三处的重复变量替换代码集中到一处。新增 70+ 个文章模型变量，包括 `{P}`、`{t}`、`{p_0}`、`{Q_B}`、`{gamma}`、`{T}`、`{epsilon}`、`{iota}`、`{alpha_*}`、`{mu_*}`、`{sigma_*}`、`{lambda}`、`{delta}`、`{tau}`、`{nu}`、`{T_history}` 等，以及 `{epsilon-calculated}` 预计算环境指数、`{Q}` 自动计算额度。
 - **历史周期序列存储**：在 `ObjectUseTimesCache` 中新增 `PeriodRecord` 内部类和 `sellHistory`/`buyHistory` 列表，每次周期重置时自动归档当前周期的售出/买入次数和重置时间点。最多保留 `max-history-periods` 个周期（默认 30，可配置）。数据通过 YAML 和 SQL（JSON 列）持久化。`{sell-decayed-player}`、`{sell-decayed-server}`、`{buy-decayed-player}`、`{buy-decayed-server}` 变量基于真实历史周期序列，按文章公式 `FLOOR(n_i(0) / (E ^ (delta * (t_i - tau)) + 1))` 对每个周期分别计算衰减后求和，完全还原文章中的多历史周期序列模型。
+- **累计收益 M(n) 追踪**：在 `ObjectUseTimesCache` 中新增 `totalSellRevenue`/`totalBuyCost` 字段，每次交易完成后自动累加实际金额（包括物品和货币），通过 YAML 和 SQL 持久化。提供 `{sell-revenue-player}`/`{M_sell}`、`{buy-cost-player}`/`{M_buy}`、`{sell-revenue-server}`、`{buy-cost-server}` 变量，完全实现文章中的累计收益 M(n) = Σ p(n')。
 - **`economy-model` 配置节**：在 `config.yml` 新增 `placeholder.data.economy-model` 配置节，包含价格衰减、时间恢复、经济环境指数、假期影响、额度池等全部模型参数，每个值都支持数字或 PlaceholderAPI 表达式。
 - **中国法定节假日 API 集成**：新增 `ChinaHolidayManager.java`，启动时异步拉取 [timor.tech](https://timor.tech/api/holiday) 免费 API，自动获取国务院公告的真实放假和调休数据（不可用时回退到 [NateScarlet/holiday-cn](https://github.com/NateScarlet/holiday-cn)）。区分中长假期（春节、国庆）与小假期（元旦、清明等），自动计算 `mu_i`，提供 `{china-holiday-beta}`、`{is-china-holiday}`、`{is-china-workday}`、`{china-holiday-name}`、`{mu-*-auto}` 等变量。
 - **CI 自动构建**：新增 `.github/workflows/build.yml`，push 时自动执行 `testMath` 验证 → `shadowJar` 打包并上传产物。
@@ -407,7 +408,7 @@ amount: 'SIGMA(1, 10, "i * i")'
 
 仍然不能完全自动还原文章里的"多历史周期序列" `n_i(0)` / `n_i(t_i)`，因为插件原本只保存当前周期次数和累计次数，不保存每一个历史周期的序列。为了解决常用场景，插件额外提供了 `{sell-decayed-player}`、`{sell-decayed-server}`、`{buy-decayed-player}`、`{buy-decayed-server}` 变量，这些变量基于真实的历史周期序列数据，按文章公式 `FLOOR(n_i(0) / (E ^ (delta * (t_i - tau)) + 1))` 对每个历史周期分别计算衰减后求和，再加上当前周期的时间衰减值。
 
-文章里的累计收益 `M(n)` 不是 UltimateShop 原有缓存字段，当前没有在插件内新增交易金额历史表。实际收购价格通常只需要单价公式 `p(n)`；如果要展示或限制累计收益，需要用 PlaceholderAPI、数据库统计或后续专门的交易金额缓存来提供。
+文章里的累计收益 `M(n) = Σ p(n')` 已通过新增 `totalSellRevenue` / `totalBuyCost` 字段实现，每次交易完成后自动累加实际金额，并提供 `{sell-revenue-player}` / `{M_sell}` 等变量。
 
 ### 插件内置变量映射
 
@@ -462,6 +463,10 @@ amount: 'SIGMA(1, 10, "i * i")'
 | `{sell-decayed-server}` | 全服 `n_i(t_i)` | 基于真实历史周期序列，按文章公式对每个周期计算衰减后的全服卖出量之和 |
 | `{buy-decayed-player}` | 买入侧 `n_i(t_i)` | 基于真实历史周期序列，按文章公式对每个周期计算衰减后的玩家买入量之和 |
 | `{buy-decayed-server}` | 全服买入侧 `n_i(t_i)` | 基于真实历史周期序列，按文章公式对每个周期计算衰减后的全服买入量之和 |
+| `{sell-revenue-player}` / `{M_sell}` | `M(n)` | 该玩家卖出该物品的累计收益（实际交易金额之和） |
+| `{buy-cost-player}` / `{M_buy}` | 买入侧 `M(n)` | 该玩家买入该物品的累计花费（实际交易金额之和） |
+| `{sell-revenue-server}` | 全服 `M(n)` | 全服卖出该物品的累计收益 |
+| `{buy-cost-server}` | 全服买入侧 `M(n)` | 全服买入该物品的累计花费 |
 | `{sell-limit-player}` | 额度上限 | 当前玩家个人卖出限制 |
 | `{sell-limit-left-player}` | 剩余额度 | 当前玩家个人卖出剩余额度 |
 | `{sell-limit-server}` | 全服额度上限 | 当前全服卖出限制 |

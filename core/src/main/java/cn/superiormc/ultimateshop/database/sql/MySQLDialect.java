@@ -41,6 +41,8 @@ public class MySQLDialect extends DatabaseDialect {
                     cooldownSellTime DATETIME NULL,
                     sellHistory TEXT,
                     buyHistory TEXT,
+                    totalSellRevenue DOUBLE DEFAULT 0,
+                    totalBuyCost DOUBLE DEFAULT 0,
                     PRIMARY KEY (playerUUID, shop, product)
                 )
             """;
@@ -91,8 +93,8 @@ public class MySQLDialect extends DatabaseDialect {
             INSERT INTO ultimateshop_useTimes
             (playerUUID, shop, product, buyUseTimes, totalBuyUseTimes, sellUseTimes, totalSellUseTimes,
              lastBuyTime, lastSellTime, lastResetBuyTime, lastResetSellTime, cooldownBuyTime, cooldownSellTime,
-             sellHistory, buyHistory)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             sellHistory, buyHistory, totalSellRevenue, totalBuyCost)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 buyUseTimes = VALUES(buyUseTimes),
                 totalBuyUseTimes = VALUES(totalBuyUseTimes),
@@ -105,7 +107,9 @@ public class MySQLDialect extends DatabaseDialect {
                 cooldownBuyTime = VALUES(cooldownBuyTime),
                 cooldownSellTime = VALUES(cooldownSellTime),
                 sellHistory = VALUES(sellHistory),
-                buyHistory = VALUES(buyHistory)
+                buyHistory = VALUES(buyHistory),
+                totalSellRevenue = VALUES(totalSellRevenue),
+                totalBuyCost = VALUES(totalBuyCost)
         """;
     }
 

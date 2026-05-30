@@ -29,6 +29,10 @@ public class ObjectUseTimesCache {
 
     private int totalSellUseTimes;
 
+    private double totalSellRevenue = 0;
+
+    private double totalBuyCost = 0;
+
     private LocalDateTime lastBuyTime = null;
 
     private LocalDateTime lastSellTime = null;
@@ -204,6 +208,30 @@ public class ObjectUseTimesCache {
             return 0;
         }
         return totalSellUseTimes;
+    }
+
+    public double getTotalSellRevenue() {
+        return totalSellRevenue;
+    }
+
+    public double getTotalBuyCost() {
+        return totalBuyCost;
+    }
+
+    public void addSellRevenue(double amount) {
+        totalSellRevenue += amount;
+    }
+
+    public void addBuyCost(double amount) {
+        totalBuyCost += amount;
+    }
+
+    public void setTotalSellRevenue(double amount) {
+        totalSellRevenue = amount;
+    }
+
+    public void setTotalBuyCost(double amount) {
+        totalBuyCost = amount;
     }
 
     public void setBuyUseTimes(int i) {
@@ -928,6 +956,7 @@ public class ObjectUseTimesCache {
 
     public boolean isEmpty() {
         return buyUseTimes == 0 && totalBuyUseTimes == 0 && sellUseTimes == 0 && totalSellUseTimes == 0
+                && totalSellRevenue == 0 && totalBuyCost == 0
                 && sellHistory.isEmpty() && buyHistory.isEmpty();
     }
 

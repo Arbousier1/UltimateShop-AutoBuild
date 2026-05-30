@@ -41,6 +41,8 @@ public class H2Dialect extends DatabaseDialect {
                 cooldownSellTime TIMESTAMP,
                 sellHistory TEXT,
                 buyHistory TEXT,
+                totalSellRevenue DOUBLE DEFAULT 0,
+                totalBuyCost DOUBLE DEFAULT 0,
                 PRIMARY KEY (playerUUID, shop, product)
             )
         """;
@@ -95,9 +97,10 @@ public class H2Dialect extends DatabaseDialect {
              lastBuyTime, lastSellTime,
              lastResetBuyTime, lastResetSellTime,
              cooldownBuyTime, cooldownSellTime,
-             sellHistory, buyHistory)
+             sellHistory, buyHistory,
+             totalSellRevenue, totalBuyCost)
             KEY (playerUUID, shop, product)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
     }
 

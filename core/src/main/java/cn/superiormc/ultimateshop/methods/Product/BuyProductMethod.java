@@ -218,6 +218,12 @@ public class BuyProductMethod {
             TextUtil.sendMessage(null, TextUtil.pluginPrefix() + " §aSet player limit value to " + newValue + "!");
         }
         tempVal9.setBuyUseTimes(tempVal9.getBuyUseTimes() + multi);
+        double buyCost = 0;
+        for (var entry : takeResult.getResultMap().entrySet()) {
+            buyCost += entry.getValue().doubleValue();
+        }
+        tempVal9.addBuyCost(buyCost);
+        tempVal8.addBuyCost(buyCost);
         tempVal9.setLastBuyTime(CommonUtil.getNowTime());
         tempVal9.setCooldownBuyTime();
         if (ConfigManager.configManager.getBoolean("debug")) {
