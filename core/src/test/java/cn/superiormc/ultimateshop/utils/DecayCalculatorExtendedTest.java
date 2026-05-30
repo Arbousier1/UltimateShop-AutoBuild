@@ -286,7 +286,7 @@ public class DecayCalculatorExtendedTest {
     }
 
     static void testPnExponentialDecay() {
-        System.out.println("\n--- Invariant: p(n) / p(0) = exp(-lambda*n) ---");
+        System.out.println("\n--- Invariant: p(n) / p(0) ≈ exp(-lambda*n) (within rounding) ---");
         double epsilon = 0.95;
         double iota = 1.1;
         double p0 = 100;
@@ -297,7 +297,7 @@ public class DecayCalculatorExtendedTest {
             double p0val = DecayCalculator.computePn(epsilon, iota, p0, lambda, 0);
             double ratio = pn / p0val;
             double expected = Math.exp(-lambda * n);
-            check("p(" + n + ")/p(0) = exp(-lambda*" + n + ")", ratio, expected, 0.001);
+            check("p(" + n + ")/p(0) ≈ exp(-lambda*" + n + ")", ratio, expected, 0.01);
         }
     }
 
@@ -309,8 +309,8 @@ public class DecayCalculatorExtendedTest {
         double p05 = DecayCalculator.computePn(0.5, iota, p0, lambda, n);
         double p02 = DecayCalculator.computePn(0.2, iota, p0, lambda, n);
 
-        check("p(eps=0.5) = 0.5 * p(eps=1.0)", p05, 0.5 * p1, 0.001);
-        check("p(eps=0.2) = 0.2 * p(eps=1.0)", p02, 0.2 * p1, 0.001);
+        check("p(eps=0.5) ≈ 0.5 * p(eps=1.0)", p05, 0.5 * p1, 0.01);
+        check("p(eps=0.2) ≈ 0.2 * p(eps=1.0)", p02, 0.2 * p1, 0.01);
     }
 
     static void testPnLinearInP0() {
@@ -321,8 +321,8 @@ public class DecayCalculatorExtendedTest {
         double p200 = DecayCalculator.computePn(epsilon, iota, 200, lambda, n);
         double p50 = DecayCalculator.computePn(epsilon, iota, 50, lambda, n);
 
-        check("p(p0=200) = 2 * p(p0=100)", p200, 2 * p100, 0.001);
-        check("p(p0=50) = 0.5 * p(p0=100)", p50, 0.5 * p100, 0.001);
+        check("p(p0=200) ≈ 2 * p(p0=100)", p200, 2 * p100, 0.01);
+        check("p(p0=50) ≈ 0.5 * p(p0=100)", p50, 0.5 * p100, 0.01);
     }
 
     static void testQuotaLinearInAllInputs() {
@@ -582,22 +582,22 @@ public class DecayCalculatorExtendedTest {
     }
 
     static void testArticlePriceFormula() {
-        System.out.println("\n--- Article formula: p(n) = epsilon * iota * p0 * exp(-lambda*n) ---");
+        System.out.println("\n--- Article formula: p(n) = round(epsilon * iota * p0 * exp(-lambda*n), 2) ---");
         double epsilon = 0.85;
         double iota = 1.25;
         double p0 = 100;
         double lambda = 0.05;
 
         double p0val = DecayCalculator.computePn(epsilon, iota, p0, lambda, 0);
-        check("p(0) = epsilon * iota * p0 = " + (epsilon * iota * p0), p0val, epsilon * iota * p0, 0.001);
+        check("p(0) = round(epsilon * iota * p0, 2)", p0val, epsilon * iota * p0, 0.001);
 
         double p10 = DecayCalculator.computePn(epsilon, iota, p0, lambda, 10);
-        double expected = epsilon * iota * p0 * Math.exp(-lambda * 10);
-        check("p(10) = epsilon * iota * p0 * exp(-0.5)", p10, expected, 0.001);
+        double expected = Math.round(epsilon * iota * p0 * Math.exp(-lambda * 10) * 100.0) / 100.0;
+        check("p(10) = round(epsilon * iota * p0 * exp(-0.5), 2)", p10, expected, 0.001);
 
         double halfLife = Math.log(2) / lambda;
         double pAtHalfLife = DecayCalculator.computePn(epsilon, iota, p0, lambda, halfLife);
-        check("p(halfLife) = p(0)/2", pAtHalfLife, p0val / 2, 0.01);
+        check("p(halfLife) ≈ p(0)/2", pAtHalfLife, p0val / 2, 0.01);
     }
 
     static void testArticleQuotaFormula() {

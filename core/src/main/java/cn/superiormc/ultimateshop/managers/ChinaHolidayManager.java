@@ -207,8 +207,6 @@ public class ChinaHolidayManager {
     public double getBeta(LocalDate date) {
         double betaMinorHoliday = ConfigManager.configManager.getDouble(
                 "placeholder.data.china-holiday.beta-minor-holiday", 0.95);
-        double betaMajorHoliday = ConfigManager.configManager.getDouble(
-                "placeholder.data.china-holiday.beta-major-holiday", 0.98);
         double betaWeekend = ConfigManager.configManager.getDouble(
                 "placeholder.data.china-holiday.beta-weekend", 0.98);
         double betaWorkday = ConfigManager.configManager.getDouble(
@@ -217,7 +215,10 @@ public class ChinaHolidayManager {
         HolidayInfo info = holidayCache.get(key);
         if (info != null) {
             if (info.isHoliday) {
-                return info.isMajor ? betaMajorHoliday : betaMinorHoliday;
+                if (info.isMajor) {
+                    return betaWorkday;
+                }
+                return betaMinorHoliday;
             }
             if (info.isExtraWorkday) {
                 return betaWorkday;

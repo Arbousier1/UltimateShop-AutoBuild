@@ -601,12 +601,12 @@ public class DecayCalculatorTest {
         check("p(0) = epsilon*iota*p0", pn, 100.0, 0.001);
 
         pn = DecayCalculator.computePn(1, 1, 100, 0.1, 10);
-        double expected = 100 * Math.exp(-1);
-        check("p(10) with lambda=0.1", pn, expected, 0.001);
+        double expected = Math.round(100 * Math.exp(-1) * 100.0) / 100.0;
+        check("p(10) with lambda=0.1 (rounded)", pn, expected, 0.001);
 
         pn = DecayCalculator.computePn(0.85, 1.25, 100, 0.05, 20);
-        expected = 0.85 * 1.25 * 100 * Math.exp(-1);
-        check("p(20) with epsilon=0.85, iota=1.25", pn, expected, 0.001);
+        expected = Math.round(0.85 * 1.25 * 100 * Math.exp(-1) * 100.0) / 100.0;
+        check("p(20) with epsilon=0.85, iota=1.25 (rounded)", pn, expected, 0.001);
 
         pn = DecayCalculator.computePn(1, 1, 100, 0.1, 0);
         double pnLater = DecayCalculator.computePn(1, 1, 100, 0.1, 10);
@@ -750,7 +750,7 @@ public class DecayCalculatorTest {
         double pn0 = DecayCalculator.computePn(epsilon, iota, p0, lambda, 0);
         checkBool("M(10) * lambda < 1 (bounded)", mn10 * lambda < 1.0);
         check("p(0) = epsilon * iota * p0", pn0, epsilon * iota * p0, 0.001);
-        check("p(10) = epsilon * iota * p0 * e^(-lambda*10)", pn10, epsilon * iota * p0 * Math.exp(-lambda * 10), 0.001);
+        check("p(10) = round(epsilon * iota * p0 * e^(-lambda*10), 2)", pn10, Math.round(epsilon * iota * p0 * Math.exp(-lambda * 10) * 100.0) / 100.0, 0.001);
 
         double q = DecayCalculator.computeQuota(10, 2, 5, 100);
         check("Q = (Q_B + gamma*P) * T", q, (10 + 2 * 5) * 100, 0.001);

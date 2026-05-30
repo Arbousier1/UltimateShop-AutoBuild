@@ -360,7 +360,6 @@ placeholder:
       major-holiday-summer: ''
       major-holiday-national: '国庆节'
       beta-minor-holiday: 0.95
-      beta-major-holiday: 0.98
       beta-weekend: 0.98
       beta-workday: 1.0
   refresh:
