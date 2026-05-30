@@ -18,6 +18,8 @@ import cn.superiormc.ultimateshop.utils.CommonUtil;
 import cn.superiormc.ultimateshop.utils.TextUtil;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -100,9 +102,20 @@ public class SQLDatabase extends AbstractDatabase {
                 stmt.execute(dialect.createRandomPlaceholderTable());
                 stmt.execute(dialect.createCustomPlaceholderTable());
             }
+
+            addHistoryColumns(conn);
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private void addHistoryColumns(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE ultimateshop_useTimes ADD COLUMN sellHistory TEXT");
+        } catch (SQLException ignored) {}
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE ultimateshop_useTimes ADD COLUMN buyHistory TEXT");
+        } catch (SQLException ignored) {}
     }
 
     @Override
@@ -178,9 +191,11 @@ public class SQLDatabase extends AbstractDatabase {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    String shop = rs.getString("shop");
+                    String product = rs.getString("product");
                     cache.setUseTimesCache(
-                            rs.getString("shop"),
-                            rs.getString("product"),
+                            shop,
+                            product,
                             rs.getInt("buyUseTimes"),
                             rs.getInt("totalBuyUseTimes"),
                             rs.getInt("sellUseTimes"),
@@ -192,6 +207,13 @@ public class SQLDatabase extends AbstractDatabase {
                             rs.getString("cooldownBuyTime"),
                             rs.getString("cooldownSellTime")
                     );
+                    ObjectUseTimesCache useTimesCache = cache.getSharedUseTimesCache()
+                            .get(new UseTimesStorageKey(shop, product));
+                    if (useTimesCache != null) {
+                        loadHistory(useTimesCache,
+                                rs.getString("sellHistory"),
+                                rs.getString("buyHistory"));
+                    }
                 }
             }
         }
@@ -348,7 +370,9 @@ public class SQLDatabase extends AbstractDatabase {
                 cache.getLastResetBuyTime(),
                 cache.getLastResetSellTime(),
                 cache.getCooldownBuyTime(),
-                cache.getCooldownSellTime()
+                cache.getCooldownSellTime(),
+                serializeHistory(cache.getSellHistorySerialized()),
+                serializeHistory(cache.getBuyHistorySerialized())
         );
     }
 
@@ -364,7 +388,9 @@ public class SQLDatabase extends AbstractDatabase {
                               String lastResetBuyTime,
                               String lastResetSellTime,
                               String cooldownBuyTime,
-                              String cooldownSellTime) throws SQLException {
+                              String cooldownSellTime,
+                              String sellHistory,
+                              String buyHistory) throws SQLException {
         ps.setString(1, playerUUID);
         ps.setString(2, key.shop());
         ps.setString(3, key.product());
@@ -378,6 +404,8 @@ public class SQLDatabase extends AbstractDatabase {
         ps.setString(11, lastResetSellTime);
         ps.setString(12, cooldownBuyTime);
         ps.setString(13, cooldownSellTime);
+        ps.setString(14, sellHistory);
+        ps.setString(15, buyHistory);
 
         if (dialect.supportBatch()) {
             ps.addBatch();
@@ -454,6 +482,34 @@ public class SQLDatabase extends AbstractDatabase {
 
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    private String serializeHistory(List<Map<String, Object>> history) {
+        JSONArray arr = new JSONArray();
+        for (Map<String, Object> record : history) {
+            JSONObject obj = new JSONObject();
+            obj.put("times", record.get("times"));
+            obj.put("resetTime", record.get("resetTime"));
+            arr.put(obj);
+        }
+        return arr.toString();
+    }
+
+    private void loadHistory(ObjectUseTimesCache cache, String sellHistoryJson, String buyHistoryJson) {
+        if (sellHistoryJson != null && !sellHistoryJson.isEmpty()) {
+            JSONArray arr = new JSONArray(sellHistoryJson);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                cache.addSellHistoryRecord(obj.getInt("times"), obj.optString("resetTime", null));
+            }
+        }
+        if (buyHistoryJson != null && !buyHistoryJson.isEmpty()) {
+            JSONArray arr = new JSONArray(buyHistoryJson);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                cache.addBuyHistoryRecord(obj.getInt("times"), obj.optString("resetTime", null));
+            }
         }
     }
 

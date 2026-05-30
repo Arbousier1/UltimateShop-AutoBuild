@@ -39,6 +39,8 @@ public class PostgreSQLDialect extends DatabaseDialect {
                 lastResetSellTime TIMESTAMP,
                 cooldownBuyTime TIMESTAMP,
                 cooldownSellTime TIMESTAMP,
+                sellHistory TEXT,
+                buyHistory TEXT,
                 PRIMARY KEY (playerUUID, shop, product)
             )
         """;
@@ -92,9 +94,10 @@ public class PostgreSQLDialect extends DatabaseDialect {
                 sellUseTimes, totalSellUseTimes,
                 lastBuyTime, lastSellTime,
                 lastResetBuyTime, lastResetSellTime,
-                cooldownBuyTime, cooldownSellTime
+                cooldownBuyTime, cooldownSellTime,
+                sellHistory, buyHistory
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (playerUUID, shop, product)
             DO UPDATE SET
                 buyUseTimes = EXCLUDED.buyUseTimes,
@@ -106,7 +109,9 @@ public class PostgreSQLDialect extends DatabaseDialect {
                 lastResetBuyTime = EXCLUDED.lastResetBuyTime,
                 lastResetSellTime = EXCLUDED.lastResetSellTime,
                 cooldownBuyTime = EXCLUDED.cooldownBuyTime,
-                cooldownSellTime = EXCLUDED.cooldownSellTime
+                cooldownSellTime = EXCLUDED.cooldownSellTime,
+                sellHistory = EXCLUDED.sellHistory,
+                buyHistory = EXCLUDED.buyHistory
         """;
     }
 

@@ -49,6 +49,8 @@ public class SQLiteDialect extends DatabaseDialect {
                 lastResetSellTime TEXT,
                 cooldownBuyTime TEXT,
                 cooldownSellTime TEXT,
+                sellHistory TEXT,
+                buyHistory TEXT,
                 PRIMARY KEY (playerUUID, shop, product)
             )
         """;
@@ -102,9 +104,10 @@ public class SQLiteDialect extends DatabaseDialect {
                 sellUseTimes, totalSellUseTimes,
                 lastBuyTime, lastSellTime,
                 lastResetBuyTime, lastResetSellTime,
-                cooldownBuyTime, cooldownSellTime
+                cooldownBuyTime, cooldownSellTime,
+                sellHistory, buyHistory
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(playerUUID, shop, product)
             DO UPDATE SET
                 buyUseTimes = excluded.buyUseTimes,
@@ -116,7 +119,9 @@ public class SQLiteDialect extends DatabaseDialect {
                 lastResetBuyTime = excluded.lastResetBuyTime,
                 lastResetSellTime = excluded.lastResetSellTime,
                 cooldownBuyTime = excluded.cooldownBuyTime,
-                cooldownSellTime = excluded.cooldownSellTime
+                cooldownSellTime = excluded.cooldownSellTime,
+                sellHistory = excluded.sellHistory,
+                buyHistory = excluded.buyHistory
         """;
     }
 

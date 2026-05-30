@@ -351,6 +351,7 @@ placeholder:
       price-decay: 0.05
       decay-delta: 1
       decay-tau-days: 7
+      max-history-periods: 30
     china-holiday:
       enabled: false
       api-url: 'https://timor.tech/api/holiday/year/{year}'

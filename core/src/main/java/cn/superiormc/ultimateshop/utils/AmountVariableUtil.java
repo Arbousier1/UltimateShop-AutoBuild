@@ -12,6 +12,10 @@ import org.bukkit.entity.Player;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 public class AmountVariableUtil {
 
@@ -87,6 +91,17 @@ public class AmountVariableUtil {
                 muNationalAuto = decimal(hm.getMuNational());
             }
         }
+
+        double delta = modelDouble(player, "decay-delta", 1);
+        double tauDays = modelDouble(player, "decay-tau-days", 7);
+        String sellDecayedPlayer = computeDecayedFromHistory(
+                playerCache, true, true, adjustedPlayerSellTimes, lastResetSellPlayerSeconds, delta, tauDays);
+        String sellDecayedServer = computeDecayedFromHistory(
+                serverCache, false, true, adjustedServerSellTimes, lastResetSellServerSeconds, delta, tauDays);
+        String buyDecayedPlayer = computeDecayedFromHistory(
+                playerCache, true, false, adjustedPlayerBuyTimes, 0, delta, tauDays);
+        String buyDecayedServer = computeDecayedFromHistory(
+                serverCache, false, false, adjustedServerBuyTimes, 0, delta, tauDays);
 
         String[] commonVariables = new String[] {
                 "buy-times-player", String.valueOf(adjustedPlayerBuyTimes),
@@ -164,10 +179,10 @@ public class AmountVariableUtil {
                 "tau", modelValue(player, "decay-tau-days", "7"),
                 "decay-history-days", decayHistoryDays(player, periodSellLimit),
                 "T_history", decayHistoryDays(player, periodSellLimit),
-                "sell-decayed-player", decayed(player, adjustedPlayerSellTimes, lastResetSellPlayerSeconds),
-                "sell-total-decayed-player", decayed(player, adjustedPlayerTotalSellTimes, lastSellPlayerSeconds),
-                "sell-decayed-server", decayed(player, adjustedServerSellTimes, lastResetSellServerSeconds),
-                "sell-total-decayed-server", decayed(player, adjustedServerTotalSellTimes, lastSellServerSeconds),
+                "sell-decayed-player", sellDecayedPlayer,
+                "sell-decayed-server", sellDecayedServer,
+                "buy-decayed-player", buyDecayedPlayer,
+                "buy-decayed-server", buyDecayedServer,
                 "is-china-holiday", String.valueOf(isChinaHoliday),
                 "is-china-workday", String.valueOf(isChinaWorkday),
                 "china-holiday-name", chinaHolidayName,
@@ -202,6 +217,41 @@ public class AmountVariableUtil {
                 "sell-times-max-player", String.valueOf(sellTimesMaxPlayer),
                 "buy-times-left-player", remaining(buyTimesMaxPlayer, adjustedPlayerBuyTimes),
                 "sell-times-left-player", remaining(sellTimesMaxPlayer, adjustedPlayerSellTimes));
+    }
+
+    private static String computeDecayedFromHistory(ObjectUseTimesCache cache, boolean isPlayer,
+                                                     boolean isSell, int currentTimes,
+                                                     double currentElapsedSeconds,
+                                                     double delta, double tauDays) {
+        if (cache == null) {
+            return "0";
+        }
+        List<ObjectUseTimesCache.PeriodRecord> history = isSell
+                ? cache.getSellHistory() : cache.getBuyHistory();
+        double totalDecayed = 0;
+        LocalDateTime now = CommonUtil.getNowTime();
+        for (int i = 0; i < history.size(); i++) {
+            ObjectUseTimesCache.PeriodRecord record = history.get(i);
+            int n0 = isSell ? record.getSellTimes() : record.getBuyTimes();
+            if (n0 <= 0) continue;
+            LocalDateTime resetTime = record.getResetTime();
+            double elapsedDays;
+            if (resetTime != null) {
+                elapsedDays = ChronoUnit.SECONDS.between(resetTime, now) / SECONDS_PER_DAY;
+            } else {
+                elapsedDays = 0;
+            }
+            double decayedValue = Math.floor(n0 / (Math.exp(delta * (elapsedDays - tauDays)) + 1));
+            totalDecayed += decayedValue;
+        }
+        if (currentTimes > 0 && currentElapsedSeconds > 0) {
+            double elapsedDays = currentElapsedSeconds / SECONDS_PER_DAY;
+            double currentDecayed = Math.floor(currentTimes / (Math.exp(delta * (elapsedDays - tauDays)) + 1));
+            totalDecayed += currentDecayed;
+        } else if (currentTimes > 0) {
+            totalDecayed += currentTimes;
+        }
+        return decimal(totalDecayed);
     }
 
     private static int applyOffset(int value, int offsetAmount, boolean buyOrSell, boolean placeholderBuyOrSell) {
@@ -280,14 +330,6 @@ public class AmountVariableUtil {
         }
         double tauDays = modelDouble(player, "decay-tau-days", 7);
         return decimal(tauDays + Math.log(periodSellLimit - 1) / delta);
-    }
-
-    private static String decayed(Player player, int amount, double elapsedSeconds) {
-        double delta = modelDouble(player, "decay-delta", 1);
-        double tauDays = modelDouble(player, "decay-tau-days", 7);
-        double elapsedDays = elapsedSeconds / SECONDS_PER_DAY;
-        double value = Math.floor(amount / (Math.exp(delta * (elapsedDays - tauDays)) + 1));
-        return decimal(value);
     }
 
     private static double seconds(String value) {

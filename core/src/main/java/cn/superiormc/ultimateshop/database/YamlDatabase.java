@@ -78,6 +78,23 @@ public class YamlDatabase extends AbstractDatabase {
                             productSection.getString("cooldownBuyTime", null),
                             productSection.getString("cooldownSellTime", null)
                     );
+                    ObjectUseTimesCache useTimesCache = cache.getSharedUseTimesCache().get(new UseTimesStorageKey(shopID, productID));
+                    if (useTimesCache != null) {
+                        List<Map<?, ?>> sellHistoryList = productSection.getMapList("sellHistory");
+                        for (Map<?, ?> record : sellHistoryList) {
+                            useTimesCache.addSellHistoryRecord(
+                                    (Integer) record.get("times"),
+                                    (String) record.get("resetTime")
+                            );
+                        }
+                        List<Map<?, ?>> buyHistoryList = productSection.getMapList("buyHistory");
+                        for (Map<?, ?> record : buyHistoryList) {
+                            useTimesCache.addBuyHistoryRecord(
+                                    (Integer) record.get("times"),
+                                    (String) record.get("resetTime")
+                            );
+                        }
+                    }
                 });
             });
         }
@@ -205,6 +222,14 @@ public class YamlDatabase extends AbstractDatabase {
                 toTime(cache.getCooldownBuyTime()),
                 toTime(cache.getCooldownSellTime())
         );
+        List<Map<String, Object>> sellHistory = cache.getSellHistorySerialized();
+        if (!sellHistory.isEmpty()) {
+            productSection.set("sellHistory", sellHistory);
+        }
+        List<Map<String, Object>> buyHistory = cache.getBuyHistorySerialized();
+        if (!buyHistory.isEmpty()) {
+            productSection.set("buyHistory", buyHistory);
+        }
     }
 
     private ConfigurationSection getUseTimesSection(ConfigurationSection root, UseTimesStorageKey key) {

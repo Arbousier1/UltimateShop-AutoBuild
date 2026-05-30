@@ -13,6 +13,10 @@ import org.bukkit.entity.Player;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class ObjectUseTimesCache {
@@ -37,7 +41,35 @@ public class ObjectUseTimesCache {
 
     private LocalDateTime cooldownSellTime = null;
 
+    private final List<PeriodRecord> sellHistory = new ArrayList<>();
+
+    private final List<PeriodRecord> buyHistory = new ArrayList<>();
+
     private ObjectItem product;
+
+    public static class PeriodRecord {
+        int buyTimes;
+        int sellTimes;
+        LocalDateTime resetTime;
+
+        public PeriodRecord(int buyTimes, int sellTimes, LocalDateTime resetTime) {
+            this.buyTimes = buyTimes;
+            this.sellTimes = sellTimes;
+            this.resetTime = resetTime;
+        }
+
+        public int getBuyTimes() {
+            return buyTimes;
+        }
+
+        public int getSellTimes() {
+            return sellTimes;
+        }
+
+        public LocalDateTime getResetTime() {
+            return resetTime;
+        }
+    }
 
     private final ObjectCache cache;
 
@@ -800,6 +832,9 @@ public class ObjectUseTimesCache {
         }
         LocalDateTime tempVal1 = getBuyRefreshTime();
         if (tempVal1 != null && tempVal1.isBefore(CommonUtil.getNowTime())) {
+            archiveBuyPeriod();
+            int maxHistory = ConfigManager.configManager.getInt("placeholder.data.economy-model.max-history-periods", 30);
+            trimHistory(maxHistory);
             setBuyUseTimes(product.getBuyTimesResetValue(cache.getPlayer()), true);
             setLastBuyTime(null);
             resetCooldownBuyTime();
@@ -814,6 +849,9 @@ public class ObjectUseTimesCache {
         }
         LocalDateTime tempVal1 = getSellRefreshTime();
         if (tempVal1 != null && tempVal1.isBefore(CommonUtil.getNowTime())) {
+            archiveSellPeriod();
+            int maxHistory = ConfigManager.configManager.getInt("placeholder.data.economy-model.max-history-periods", 30);
+            trimHistory(maxHistory);
             setSellUseTimes(product.getSellTimesResetValue(cache.getPlayer()), true);
             setLastSellTime(null);
             resetCooldownSellTime();
@@ -830,8 +868,67 @@ public class ObjectUseTimesCache {
         return lastSellTime;
     }
 
+    public List<PeriodRecord> getSellHistory() {
+        return sellHistory;
+    }
+
+    public List<PeriodRecord> getBuyHistory() {
+        return buyHistory;
+    }
+
+    public synchronized void archiveSellPeriod() {
+        sellHistory.add(new PeriodRecord(0, sellUseTimes, lastResetSellTime != null ? lastResetSellTime : CommonUtil.getNowTime()));
+    }
+
+    public synchronized void archiveBuyPeriod() {
+        buyHistory.add(new PeriodRecord(buyUseTimes, 0, lastResetBuyTime != null ? lastResetBuyTime : CommonUtil.getNowTime()));
+    }
+
+    public synchronized void trimHistory(int maxSize) {
+        if (maxSize <= 0) {
+            return;
+        }
+        while (sellHistory.size() > maxSize) {
+            sellHistory.remove(0);
+        }
+        while (buyHistory.size() > maxSize) {
+            buyHistory.remove(0);
+        }
+    }
+
+    public synchronized void addSellHistoryRecord(int sellTimes, String resetTime) {
+        sellHistory.add(new PeriodRecord(0, sellTimes, resetTime != null ? CommonUtil.stringToTime(resetTime) : null));
+    }
+
+    public synchronized void addBuyHistoryRecord(int buyTimes, String resetTime) {
+        buyHistory.add(new PeriodRecord(buyTimes, 0, resetTime != null ? CommonUtil.stringToTime(resetTime) : null));
+    }
+
+    public List<Map<String, Object>> getSellHistorySerialized() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (PeriodRecord record : sellHistory) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("times", record.sellTimes);
+            map.put("resetTime", record.resetTime != null ? CommonUtil.timeToString(record.resetTime) : null);
+            result.add(map);
+        }
+        return result;
+    }
+
+    public List<Map<String, Object>> getBuyHistorySerialized() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (PeriodRecord record : buyHistory) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("times", record.buyTimes);
+            map.put("resetTime", record.resetTime != null ? CommonUtil.timeToString(record.resetTime) : null);
+            result.add(map);
+        }
+        return result;
+    }
+
     public boolean isEmpty() {
-        return buyUseTimes == 0 && totalBuyUseTimes == 0 && sellUseTimes == 0 && totalSellUseTimes == 0;
+        return buyUseTimes == 0 && totalBuyUseTimes == 0 && sellUseTimes == 0 && totalSellUseTimes == 0
+                && sellHistory.isEmpty() && buyHistory.isEmpty();
     }
 
     public boolean isFirstInsert() {
