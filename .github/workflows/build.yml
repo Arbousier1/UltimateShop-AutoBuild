@@ -82,6 +82,8 @@ jobs:
         run: |
           gradle :core:testMath --no-daemon
           gradle :core:testDecay --no-daemon
+          gradle :core:testDecayExtended --no-daemon
+          gradle :core:testPureUtils --no-daemon
           gradle clean shadowJar --no-daemon
           JAR_FILE=$(find plugin/build/libs -name "UltimateShop-*.jar" ! -name "*sources.jar" ! -name "*javadoc.jar" | head -1)
           if [ -n "$JAR_FILE" ]; then

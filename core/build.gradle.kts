@@ -76,3 +76,25 @@ tasks.register<JavaExec>("testDecay") {
     dependsOn(tasks.named("testClasses"))
     classpath = sourceSets["test"].runtimeClasspath
 }
+
+tasks.register<JavaExec>("testDecayExtended") {
+    group = "verification"
+    description = "Run DecayCalculator property-based + simulation tests"
+    mainClass.set("cn.superiormc.ultimateshop.utils.DecayCalculatorExtendedTest")
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+}
+
+tasks.register<JavaExec>("testPureUtils") {
+    group = "verification"
+    description = "Run AmountVariableUtil pure function tests"
+    mainClass.set("cn.superiormc.ultimateshop.utils.AmountVariableUtilPureTest")
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+}
+
+tasks.register("testAll") {
+    group = "verification"
+    description = "Run all custom tests"
+    dependsOn("testMath", "testDecay", "testDecayExtended", "testPureUtils")
+}
