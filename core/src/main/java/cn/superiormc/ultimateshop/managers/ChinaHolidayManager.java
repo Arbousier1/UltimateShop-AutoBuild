@@ -30,7 +30,7 @@ public class ChinaHolidayManager {
 
     public ChinaHolidayManager() {
         chinaHolidayManager = this;
-        if (!ConfigManager.configManager.getBoolean("placeholder.data.china-holiday.enabled", false)) {
+        if (!ConfigManager.configManager.getBoolean("placeholder.data.china-holiday.enabled")) {
             return;
         }
         Bukkit.getScheduler().runTaskAsynchronously(UltimateShop.instance, this::fetchHolidayData);
